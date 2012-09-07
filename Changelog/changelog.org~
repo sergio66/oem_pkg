@@ -1,0 +1,42 @@
+Change Log for Rate Fitting Code
+
+* Notes
+- Src is at ~/Work/Rates/Fit\_pkg
+
+* Changes
+** [2011-08-02 Tues 05:05]
+- jacobian file now has the qrenormalization information
+** [2011-08-01 Mon 21:50]
+- driver.map_jac2cov allows you to map indices from Jacobian to Covariance
+** [2011-08-01 Mon 14:14]
+- Covariance matrix format changed; no top level structure name.
+  =oem_lls.m= changed to reflect this, see =b0=.
+- Apriori format changed; no top level structure name.
+  =oem_lls.m= changed to reflect this, see =zset=, and =zstd=.
+- Changed debugging approach, using Matlab code like:
+  #+BEGIN_SRC matlab
+  if driver.debug
+    addpath Debug
+    debug_cov
+    rmpath Debug
+  end
+  #+END_SRC
+  These scripts are in the =Debug= directory.
+- Created directory Changelog to hold this file and its various output
+  formats. 
+
+* COMMENT Export code
+#+EXPORT_SELECT_TAGS: nil
+#+LaTeX_CLASS: article
+#+LaTeX_HEADER: \input /Users/strow/Tex/Templates/article_setup
+##+TITLE: ASL Management Lists
+#+AUTHOR: L. Strow, S. Desouza-Machado 
+#+LaTeX_CLASS_OPTIONS: [11pt]
+#+OPTIONS: h:3 toc:nil
+#+STYLE: <link rel="stylesheet" type="text/css" href="/Users/strow/org/Css/org_lls.css" />
+
+
+
+
+
+

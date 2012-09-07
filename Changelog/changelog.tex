@@ -1,0 +1,145 @@
+% Created 2011-08-25 Thu 19:14
+\documentclass[11pt]{article}
+                  \usepackage{graphicx}
+         \usepackage{longtable}
+         \usepackage{float}
+         \usepackage{wrapfig}
+         \usepackage{soul}
+         \usepackage{marvosym}
+         \usepackage{wasysym}
+         \usepackage{latexsym}
+         \usepackage{amssymb}
+         \usepackage{hyperref}
+         \input /Users/strow/Tex/Templates/article_setup
+
+\providecommand{\alert}[1]{\textbf{#1}}
+
+\title{Change Log for Rate Fitting Code}
+\author{L. Strow, S. Desouza-Machado}
+\date{25 August 2011}
+
+\begin{document}
+
+\maketitle
+
+
+\section{Notes}
+\label{sec-1}
+
+
+\begin{itemize}
+\item Src is at \~{}/Work/Rates/Fit\_pkg
+\end{itemize}
+\section{Changes}
+\label{sec-2}
+\subsection{\textit{2011-08-25 Thu} (LLS)}
+\label{sec-2_1}
+
+
+\begin{itemize}
+\item Fixed problems with adjust$_{\mathrm{rates}}$.
+\item Added diagonal regularization for temp and water
+\end{itemize}
+\subsection{\textit{2011-08-15 Mon} (LLS)}
+\label{sec-2_2}
+
+
+\begin{itemize}
+\item Jacobians now normalized.  max(sum(abs(temp))) =
+  max(sum(abs(water))) = max(abs(gasi)) Jacobians.  See get\_jac.m
+\item get\_jac.m no longer squeezes the jacobians for the parameters being
+  fit.  This is left to retrieval.m.  This way, the jacobians
+  outputted by get\_jacs.m are ``full'' and can be used by adjust$_{\mathrm{rates}}$.m
+  to remove the effects of some gas using a known rate.
+\item Three lambda's are now used.  gas/water/temp.  The original lambda
+  is now only used if you invoke regularization only on the diagonal.
+\item Test directory using new covariance matrices (L1 with larger numbers
+  for i=1:6) and a true apriori\_zero = all zeros.
+\item In oem$_{\mathrm{lls}}$.m separated mean square variance of the fitted
+  coefficients in three separate parts: gases, water, temp.  Save in
+  driver.oem.coeff$_{\mathrm{var}}$$_{\mathrm{xxx}}$ where xxx = gas,water,temp.  This allows
+  you to do the L-curve separately for each coefficient type.
+\end{itemize}
+\subsection{\textit{2011-08-08 Mon}}
+\label{sec-2_3}
+
+
+\begin{itemize}
+\item Removed ``cluster'' stuff.
+\item Many many code changes, mostly to simplify.
+\begin{itemize}
+\item Large speed-up by doing multiple pinv's only once and saving
+\item Assume cov input matrix is the regularization matrix!
+\item Used inv instead of pinv for the gain matrix
+\end{itemize}
+\item Both the Jacobian file and the covariance file now must have same
+  ordering.  [gases columns (1-5) T$_{\mathrm{surf}}$ wv(1:97), t(1:97)]
+\item Removed lamba loop, user creates this loop externally if needed
+\item For now, put gain and ak matrices in driver output
+\item Fixed qrenorm to reflect that T-Jacobians were scaled by 0.01, not
+  0.1
+\item Changed find$_{\mathrm{cov}}$$_{\mathrm{derivoperators}}$ to remove qrenorm scaling on L matrices
+\item lambda input is now not scaled by 10$^{\mathrm{(lambda)}}$
+\item NOTE: testing now done with a L1 matrix (unity lambda2)
+\end{itemize}
+\subsection{\textit{2011-08-05 08:00}}
+\label{sec-2_4}
+
+
+\begin{itemize}
+\item the Cluster directory allows you to put the below job on the
+  cluster, using run\_tara
+\end{itemize}
+\subsection{\textit{2011-08-04 21:00}}
+\label{sec-2_5}
+
+
+\begin{itemize}
+\item set\_default\_struct is used to set defaults
+\item these are then overwritten by calling driver =
+  override\_defaults(driver,ix); where ``ix'' is the latbin you want to
+  run.  So for example a loop to do all latbins would be 
+\begin{verbatim}
+for ix=1:36
+   clear driver; 
+   run_retrieval; 
+end
+\end{verbatim}
+\end{itemize}
+\subsection{\textit{2011-08-02 05:05}}
+\label{sec-2_6}
+
+
+\begin{itemize}
+\item jacobian file now has the qrenormalization information
+\end{itemize}
+\subsection{\textit{2011-08-01 21:50}}
+\label{sec-2_7}
+
+
+\begin{itemize}
+\item driver.map\_jac2cov allows you to map indices from Jacobian to Covariance
+\end{itemize}
+\subsection{\textit{2011-08-01 14:14}}
+\label{sec-2_8}
+
+
+\begin{itemize}
+\item Covariance matrix format changed; no top level structure name.
+  \texttt{oem\_lls.m} changed to reflect this, see \texttt{b0}.
+\item Apriori format changed; no top level structure name.
+  \texttt{oem\_lls.m} changed to reflect this, see \texttt{zset}, and \texttt{zstd}.
+\item Changed debugging approach, using Matlab code like:
+\begin{verbatim}
+if driver.debug
+  addpath Debug
+  debug_cov
+  rmpath Debug
+end
+\end{verbatim}
+  These scripts are in the \texttt{Debug} directory.
+\item Created directory Changelog to hold this file and its various output
+  formats.
+\end{itemize}
+
+\end{document}

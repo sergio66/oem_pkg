@@ -1,0 +1,7 @@
+/home/strow/Work/Rates/Rates_fit  (old)
+/home/strow/Work/Rates/Fit_pkg  (new)
+
+
+writelog.m
+ln -s /home/sergio/MATLABCODE/RATES_NEW3_July31_2011/M_TS_jac_all.mat M_TS_jac_all.mat
+

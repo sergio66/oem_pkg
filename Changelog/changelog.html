@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+lang="en" xml:lang="en">
+<head>
+<title>Change Log for Rate Fitting Code</title>
+<meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
+<meta name="generator" content="Org-mode"/>
+<meta name="generated" content="2011-08-25 19:13:55 EDT"/>
+<meta name="author" content="L. Strow, S. Desouza-Machado "/>
+<meta name="description" content=""/>
+<meta name="keywords" content=""/>
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  html { font-family: Times, serif; font-size: 12pt; }
+  .title  { text-align: center; }
+  .todo   { color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #add8e6; font-weight:normal }
+  .target { }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  {margin-left:auto; margin-right:0px;  text-align:right;}
+  .left   {margin-left:0px;  margin-right:auto; text-align:left;}
+  .center {margin-left:auto; margin-right:auto; text-align:center;}
+  p.verse { margin-left: 3% }
+  pre {
+	border: 1pt solid #AEBDCC;
+	background-color: #F3F5F7;
+	padding: 5pt;
+	font-family: courier, monospace;
+        font-size: 90%;
+        overflow:auto;
+  }
+  table { border-collapse: collapse; }
+  td, th { vertical-align: top;  }
+  th.right  { text-align:center;  }
+  th.left   { text-align:center;   }
+  th.center { text-align:center; }
+  td.right  { text-align:right;  }
+  td.left   { text-align:left;   }
+  td.center { text-align:center; }
+  dt { font-weight: bold; }
+  div.figure { padding: 0.5em; }
+  div.figure p { text-align: center; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size:smaller }
+  .code-highlighted {background-color:#ffff00;}
+  .org-info-js_info-navigation { border-style:none; }
+  #org-info-js_console-label { font-size:10px; font-weight:bold;
+                               white-space:nowrap; }
+  .org-info-js_search-highlight {background-color:#ffff00; color:#000000;
+                                 font-weight:bold; }
+  /*]]>*/-->
+</style>
+<link rel="stylesheet" type="text/css" href="/Users/strow/org/Css/org_lls.css" />
+<script type="text/javascript">
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+
+</head>
+<body>
+<div id="content">
+
+<h1 class="title">Change Log for Rate Fitting Code</h1>
+
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Notes </h2>
+<div class="outline-text-2" id="text-1">
+
+<ul>
+<li>Src is at ~/Work/Rates/Fit_pkg
+</li>
+</ul>
+
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> Changes </h2>
+<div class="outline-text-2" id="text-2">
+
+
+</div>
+
+<div id="outline-container-2_1" class="outline-3">
+<h3 id="sec-2_1"><span class="section-number-3">2.1</span> <span class="timestamp-wrapper"> <span class="timestamp">2011-08-25 Thu</span></span> (LLS) </h3>
+<div class="outline-text-3" id="text-2_1">
+
+<ul>
+<li>Fixed problems with adjust<sub>rates</sub>.
+</li>
+<li>Added diagonal regularization for temp and water
+</li>
+</ul>
+</div>
+
+</div>
+
+<div id="outline-container-2_2" class="outline-3">
+<h3 id="sec-2_2"><span class="section-number-3">2.2</span> <span class="timestamp-wrapper"> <span class="timestamp">2011-08-15 Mon</span></span> (LLS) </h3>
+<div class="outline-text-3" id="text-2_2">
+
+<ul>
+<li>Jacobians now normalized.  max(sum(abs(temp))) =
+  max(sum(abs(water))) = max(abs(gasi)) Jacobians.  See get_jac.m
+</li>
+<li>get_jac.m no longer squeezes the jacobians for the parameters being
+  fit.  This is left to retrieval.m.  This way, the jacobians
+  outputted by get_jacs.m are "full" and can be used by adjust<sub>rates</sub>.m
+  to remove the effects of some gas using a known rate.
+</li>
+<li>Three lambda's are now used.  gas/water/temp.  The original lambda
+  is now only used if you invoke regularization only on the diagonal. 
+</li>
+<li>Test directory using new covariance matrices (L1 with larger numbers
+  for i=1:6) and a true apriori_zero = all zeros.
+</li>
+<li>In oem<sub>lls</sub>.m separated mean square variance of the fitted
+  coefficients in three separate parts: gases, water, temp.  Save in
+  driver.oem.coeff<sub>var</sub><sub>xxx</sub> where xxx = gas,water,temp.  This allows
+  you to do the L-curve separately for each coefficient type.
+</li>
+</ul>
+</div>
+
+</div>
+
+<div id="outline-container-2_3" class="outline-3">
+<h3 id="sec-2_3"><span class="section-number-3">2.3</span> <span class="timestamp-wrapper"> <span class="timestamp">2011-08-08 Mon</span></span> </h3>
+<div class="outline-text-3" id="text-2_3">
+
+<ul>
+<li>Removed "cluster" stuff.
+</li>
+<li>Many many code changes, mostly to simplify.
+<ul>
+<li>Large speed-up by doing multiple pinv's only once and saving
+</li>
+<li>Assume cov input matrix is the regularization matrix!
+</li>
+<li>Used inv instead of pinv for the gain matrix
+</li>
+</ul>
+</li>
+<li>Both the Jacobian file and the covariance file now must have same
+  ordering.  [gases columns (1-5) T<sub>surf</sub> wv(1:97), t(1:97)]
+</li>
+<li>Removed lamba loop, user creates this loop externally if needed
+</li>
+<li>For now, put gain and ak matrices in driver output
+</li>
+<li>Fixed qrenorm to reflect that T-Jacobians were scaled by 0.01, not
+  0.1
+</li>
+<li>Changed find<sub>cov</sub><sub>derivoperators</sub> to remove qrenorm scaling on L matrices
+</li>
+<li>lambda input is now not scaled by 10<sup>(lambda)</sup>
+</li>
+<li>NOTE: testing now done with a L1 matrix (unity lambda2)
+</li>
+</ul>
+
+</div>
+
+</div>
+
+<div id="outline-container-2_4" class="outline-3">
+<h3 id="sec-2_4"><span class="section-number-3">2.4</span> <span class="timestamp-wrapper"> <span class="timestamp">2011-08-05 08:00</span></span> </h3>
+<div class="outline-text-3" id="text-2_4">
+
+<ul>
+<li>the Cluster directory allows you to put the below job on the
+  cluster, using run_tara
+</li>
+</ul>
+</div>
+
+</div>
+
+<div id="outline-container-2_5" class="outline-3">
+<h3 id="sec-2_5"><span class="section-number-3">2.5</span> <span class="timestamp-wrapper"> <span class="timestamp">2011-08-04 21:00</span></span> </h3>
+<div class="outline-text-3" id="text-2_5">
+
+<ul>
+<li>set_default_struct is used to set defaults
+</li>
+<li>these are then overwritten by calling driver =
+  override_defaults(driver,ix); where "ix" is the latbin you want to
+  run.  So for example a loop to do all latbins would be 
+
+
+
+<pre class="example">for ix=1:36
+   clear driver; 
+   run_retrieval; 
+end
+</pre>
+
+
+</li>
+</ul>
+</div>
+
+</div>
+
+<div id="outline-container-2_6" class="outline-3">
+<h3 id="sec-2_6"><span class="section-number-3">2.6</span> <span class="timestamp-wrapper"> <span class="timestamp">2011-08-02 05:05</span></span> </h3>
+<div class="outline-text-3" id="text-2_6">
+
+<ul>
+<li>jacobian file now has the qrenormalization information
+</li>
+</ul>
+</div>
+
+</div>
+
+<div id="outline-container-2_7" class="outline-3">
+<h3 id="sec-2_7"><span class="section-number-3">2.7</span> <span class="timestamp-wrapper"> <span class="timestamp">2011-08-01 21:50</span></span> </h3>
+<div class="outline-text-3" id="text-2_7">
+
+<ul>
+<li>driver.map_jac2cov allows you to map indices from Jacobian to Covariance
+</li>
+</ul>
+</div>
+
+</div>
+
+<div id="outline-container-2_8" class="outline-3">
+<h3 id="sec-2_8"><span class="section-number-3">2.8</span> <span class="timestamp-wrapper"> <span class="timestamp">2011-08-01 14:14</span></span> </h3>
+<div class="outline-text-3" id="text-2_8">
+
+<ul>
+<li>Covariance matrix format changed; no top level structure name.
+  <code>oem_lls.m</code> changed to reflect this, see <code>b0</code>.
+</li>
+<li>Apriori format changed; no top level structure name.
+  <code>oem_lls.m</code> changed to reflect this, see <code>zset</code>, and <code>zstd</code>.
+</li>
+<li>Changed debugging approach, using Matlab code like:
+
+
+
+<pre class="example">if driver.debug
+  addpath Debug
+  debug_cov
+  rmpath Debug
+end
+</pre>
+
+
+<p>
+  These scripts are in the <code>Debug</code> directory.
+</p></li>
+<li>Created directory Changelog to hold this file and its various output
+  formats. 
+</li>
+</ul>
+
+
+</div>
+</div>
+</div>
+<div id="postamble">
+<p class="author">Author: L. Strow, S. Desouza-Machado </p>
+<p class="creator">Org version 7.5 with Emacs version 23</p>
+<a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>
+</div>
+</div>
+</body>
+</html>

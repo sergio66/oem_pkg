@@ -1,0 +1,91 @@
+Change Log for Rate Fitting Code
+
+* Notes
+- Src is at ~/Work/Rates/Fit\_pkg
+
+* Changes
+** [2011-08-25 Thu] (LLS)
+- Fixed problems with adjust_rates.
+- Added diagonal regularization for temp and water
+** [2011-08-15 Mon] (LLS)
+- Jacobians now normalized.  max(sum(abs(temp))) =
+  max(sum(abs(water))) = max(abs(gasi)) Jacobians.  See get\_jac.m
+- get\_jac.m no longer squeezes the jacobians for the parameters being
+  fit.  This is left to retrieval.m.  This way, the jacobians
+  outputted by get\_jacs.m are "full" and can be used by adjust_rates.m
+  to remove the effects of some gas using a known rate.
+- Three lambda's are now used.  gas/water/temp.  The original lambda
+  is now only used if you invoke regularization only on the diagonal. 
+- Test directory using new covariance matrices (L1 with larger numbers
+  for i=1:6) and a true apriori\_zero = all zeros.
+- In oem_lls.m separated mean square variance of the fitted
+  coefficients in three separate parts: gases, water, temp.  Save in
+  driver.oem.coeff_var_xxx where xxx = gas,water,temp.  This allows
+  you to do the L-curve separately for each coefficient type.
+** [2011-08-08 Mon]
+- Removed "cluster" stuff.
+- Many many code changes, mostly to simplify.
+  - Large speed-up by doing multiple pinv's only once and saving
+  - Assume cov input matrix is the regularization matrix!
+  - Used inv instead of pinv for the gain matrix
+- Both the Jacobian file and the covariance file now must have same
+  ordering.  [gases columns (1-5) T_surf wv(1:97), t(1:97)]
+- Removed lamba loop, user creates this loop externally if needed
+- For now, put gain and ak matrices in driver output
+- Fixed qrenorm to reflect that T-Jacobians were scaled by 0.01, not
+  0.1
+- Changed find_cov_derivoperators to remove qrenorm scaling on L matrices
+- lambda input is now not scaled by 10^(lambda)
+- NOTE: testing now done with a L1 matrix (unity lambda2)
+
+** [2011-08-05 08:00]
+- the Cluster directory allows you to put the below job on the
+  cluster, using run\_tara
+** [2011-08-04 21:00]
+- set\_default\_struct is used to set defaults
+- these are then overwritten by calling driver =
+  override\_defaults(driver,ix); where "ix" is the latbin you want to
+  run.  So for example a loop to do all latbins would be 
+  #+BEGIN_SRC matlab
+  for ix=1:36
+     clear driver; 
+     run_retrieval; 
+  end
+  #+END_SRC
+** [2011-08-02 05:05]
+- jacobian file now has the qrenormalization information
+** [2011-08-01 21:50]
+- driver.map\_jac2cov allows you to map indices from Jacobian to Covariance
+** [2011-08-01 14:14]
+- Covariance matrix format changed; no top level structure name.
+  =oem_lls.m= changed to reflect this, see =b0=.
+- Apriori format changed; no top level structure name.
+  =oem_lls.m= changed to reflect this, see =zset=, and =zstd=.
+- Changed debugging approach, using Matlab code like:
+  #+BEGIN_SRC matlab
+  if driver.debug
+    addpath Debug
+    debug_cov
+    rmpath Debug
+  end
+  #+END_SRC
+  These scripts are in the =Debug= directory.
+- Created directory Changelog to hold this file and its various output
+  formats. 
+
+
+* COMMENT Export code
+#+EXPORT_SELECT_TAGS: nil
+#+LaTeX_CLASS: article
+#+LaTeX_HEADER: \input /Users/strow/Tex/Templates/article_setup
+##+TITLE: ASL Management Lists
+#+AUTHOR: L. Strow, S. Desouza-Machado 
+#+LaTeX_CLASS_OPTIONS: [11pt]
+#+OPTIONS: h:3 toc:nil
+#+STYLE: <link rel="stylesheet" type="text/css" href="/Users/strow/org/Css/org_lls.css" />
+
+
+
+
+
+
