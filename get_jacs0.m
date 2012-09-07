@@ -1,4 +1,7 @@
-function [driver,jac] = get_jacs(driver);
+function [jac] = get_jacs0(driver);
+
+%% this is very similar to get_jac.m, except it is used when we adjust the rateset
+%% eg see Cluster_AIRS/run_retrieval_cluster.m (driver.rateset.adjust = true)
    
 % Load Jacobians, assumes they are named M_TS_jac_all
 % Also loads qrenorm
@@ -19,7 +22,6 @@ if findstr(driver.jacobian.filename,'IASI')
   driver.f = f;
 end
 
-% Form Jacobian selection vector
 qstjacindex_names = driver.jacobian.qstnames;    %% this sets the names
 qstjacindexX      = driver.jacobian.qstYesOrNo;  %% this sets whether or not to do the jacs
 qstjacindex       = logical(qstjacindexX);       %% turn 0/1 into F/T
@@ -43,11 +45,10 @@ if driver.jacobian.numQlays > 1
   end
 end
 
-tjacindex = zeros(1,numlays);
-tjacindex(driver.jacobian.tjacindex) = 1;
+tjacindex = ones(1,97);
 tjacindex = logical(tjacindex);
 
-%% driver.jacindex = [qstjacindex Q1jacindex tjacindex];
+%% driver.jacindex = [qstjacindex(1:6) wvjacindex tjacindex];
 driver.jacindex = [];
 for ii = 1 : driver.jacobian.numQlays
   junk = ['driver.jacindex = [driver.jacindex Q' num2str(ii) 'jacindex];']; eval(junk);
@@ -68,18 +69,6 @@ for ii = 1 : driver.jacobian.numQlays
   junk = ['iQ' num2str(ii) ' = find( goodind > 0 & goodind >= ' num2str(aa) ' & goodind <= ' num2str(bb) ');']; eval(junk)
 end
 
-% Find iqst, iwater, itemp for new compressed matrices (done in retrieval.m)
-inew = [];
-for ii = 1 : driver.jacobian.numQlays
-  junk = ['inew = [inew iQ' num2str(ii) '];']; eval(junk);
-end
-inew = [iqst inew itemp];
-[c niqst ib]   = intersect(inew,iqst);
-[c nitemp ib]  = intersect(inew,itemp);
-for ii = 1 : driver.jacobian.numQlays
-  junk = ['[c niQ' num2str(ii) ' ib] = intersect(inew,iQ' num2str(ii) ');']; eval(junk);
-end
-
 %%%% 
 if findstr(driver.jacobian.filename,'IASI')
   jac1  = squeeze(M_TS_jac_all1(driver.iibin,:,:));
@@ -89,27 +78,43 @@ else
   jac  = squeeze(M_TS_jac_all(driver.iibin,:,:));
 end
 
-driver.jacobian.iqst   = niqst;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Don't need goodind(iwater), iwater will do..., etc.
 for ii = 1 : driver.jacobian.numQlays
-  junk = ['driver.jacobian.iQ' num2str(ii) ' = niQ' num2str(ii) ';']; eval(junk);
+  junk = ['iQ' num2str(ii) 'sum = sum(jac(:,goodind(iQ' num2str(ii) ')),2);']; eval(junk);
 end
-driver.jacobian.itemp  = nitemp;
+tsum = sum(jac(:,goodind(itemp)),2);
 
-driver.jacobian.gasid   = goodind(iqst);
+
 for ii = 1 : driver.jacobian.numQlays
-  junk = ['driver.jacobian.iQ' num2str(ii) 'id = goodind(iQ' num2str(ii) ');']; eval(junk);
+  junk = ['iQ' num2str(ii) 'sum_max = max(abs(iQ' num2str(ii) 'sum));']; eval(junk);
 end
-driver.jacobian.tempid  = goodind(itemp);
+tsum_max = max(abs(tsum));
 
-%%%%
-% Need to avoid these normalizations if just doing LLS and no profile fits
-iDoRenorm = +1;   %% do the renorms
-iDoRenorm = -1;   %% skip the renorms
-qrenorm0 = qrenorm;
-if ((length(iQ1) > 1 | length(itemp) > 1)) & (iDoRenorm > 0)
-  do_the_renorm
+for i=1:length(qstjacindex)
+   qsum_max(i) = max(abs(jac(:,i)));
 end
-driver.qrenorm  = qrenorm;
 
+% Pick temperature as the standard
+for ii = 1 : driver.jacobian.numQlays
+  junk = ['q' num2str(ii) '_mult = tsum_max/iQ' num2str(ii) 'sum_max;']; eval(junk);
+end
+for i=1:length(qstjacindex)
+   q_mult(i) = tsum_max/qsum_max(i);
+end
 
-
+% Now apply to Jacobian and modify qrenorm 
+for i=1:length(qstjacindex)
+   jac(:,i)   = jac(:,i).*q_mult(i);
+   qrenorm(i) = qrenorm(i).*q_mult(i);
+end
+for ii = 1 : driver.jacobian.numQlays
+  aa = length(qstjacindex) + 1;     %% this takes care of qst
+  bb = aa + (ii-0)*numlays-1;       %% want to go to end,   hence ii-0
+  aa = aa + (ii-1)*numlays;         %% want to go to start, hence ii-1
+  ind = aa:bb;
+  junk = ['themult = q' num2str(ii) '_mult;']; eval(junk);
+  jac(:,ind) = jac(:,ind).*themult;
+  qrenorm(ind) = qrenorm(ind).*themult;
+end
