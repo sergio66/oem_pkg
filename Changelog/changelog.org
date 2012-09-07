@@ -73,6 +73,8 @@ Change Log for Rate Fitting Code
 - Created directory Changelog to hold this file and its various output
   formats. 
 
+** [2012-09-07 Fri]
+This is just a comment to test if I can send this to the taro repository.
 
 * COMMENT Export code
 #+EXPORT_SELECT_TAGS: nil
