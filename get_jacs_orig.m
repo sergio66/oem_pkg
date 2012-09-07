@@ -54,16 +54,12 @@ end
 %figure(2); plot(f,jac(:,1:6))
 
 % Need to avoid these normalizations if just doing LLS and no profile fits
-iDoRenorm = +1;   %% do the renorms
-iDoRenorm = -1;   %% skip the renorms
-
-qrenorm0 = qrenorm;
-if ((length(iwater) > 1 | length(itemp) > 1)) & (iDoRenorm > 0)
+if (length(iwater) > 1 | length(itemp) > 1) 
    
    % Don't need goodind(iwater), iwater will do..., etc.
    % quick ugly fix when not retrieval water
    if length(iwater) > 10
-     wsum = sum(jac(:,goodind(iwater)),2);
+   wsum = sum(jac(:,goodind(iwater)),2);
    else
       wsum = 1;
    end

@@ -18,4 +18,11 @@ switch driver.rateset.ocb_set
      nc = sqrt(nc);
 end
 
-ncerrors = real(nc' .* driver.rateset.unc_rates);
+junkname = driver.jacobian.filename;
+if findstr(junkname,'IASI')
+  blonk = driver.rateset.unc_rates;
+  ncerrors = blonk;
+  disp('nc errors not yet coded up for IASI, default to unc_rates')
+else
+  ncerrors = real(nc' .* driver.rateset.unc_rates);   %% AIRS
+end
