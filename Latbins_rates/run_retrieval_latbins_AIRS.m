@@ -3,13 +3,18 @@
 % Script to do OEM and LLS retrieval of radiance rates
 % Retrieval parameters set in get_struct
 %
-% V0.1 Sergio, Larrabee: Aug 1, 2011
+% V0.1 Sergio, Larrabee: Sept 11, 2012
+%
+% can easily do all latbins via
+%     for ix = 1 : 36
+%       run_retrieval_cluster_AIRS
+%     end
 
-% pwd
+pwd
 
-addpath /home/sergio/MATLABCODE/oem_pkg/
-addpath /home/sergio/MATLABCODE/oem_pkg/Test/
-addpath /home/sergio/MATLABCODE/oem_pkg/Test/Debug
+addpath ../
+addpath ../Test
+addpath ../Test/Debug
 
 %% Define default driver structure
 driver = set_struct;
@@ -21,7 +26,7 @@ end;
 
 %% Change some defaults
 %driver = override_defaults_airs(driver,ix);  %% this is for LLS oem_pkg
-driver = override_defaults(driver,ix);
+driver = override_defaults_cluster_AIRS(driver,ix);
 
 %% cd ../WORKS_Sept1_2012
 

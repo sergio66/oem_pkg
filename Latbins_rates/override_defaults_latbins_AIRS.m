@@ -117,7 +117,7 @@ driver.oem.lambda_Q2        = driver.oem.lambda_Q1;
 driver.oem.lambda_temp      = [ones(1,10)*2 ones(1,30)*1.5 ones(1,57)*1]*1;
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
-%driver.rateset.datafile = '/home/sergio/MATLABCODE/RATES_TARO/MAT/overocean_gsx_1day_clr_era_lays_spanday01_avgL1Brates_robust_Aug28_2012_span_07_2007_07_2012.mat';
+driver.rateset.datafile = '/home/sergio/MATLABCODE/RATES_TARO/MAT/overocean_gsx_1day_clr_era_lays_spanday01_avgL1Brates_robust_Aug28_2012_span_07_2007_07_2012.mat';
 
 fprintf(1,'%s \n',driver.rateset.datafile);
 xstartup
