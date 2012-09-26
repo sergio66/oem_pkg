@@ -4,11 +4,14 @@ function driver = oem_lls(driver,m_ts_jac);
 inds = driver.jacobian.chanset;
 obs  = real(driver.rateset.rates(inds)); 
 inds = inds( isfinite(obs) );
-clear obs
 if length(inds) < length(driver.jacobian.chanset)
   disp('Some input rates have NaNs, now removed')
 end
+obs  = real(driver.rateset.rates(inds)); 
+junk = find(obs < driver.rateset.max & obs > driver.rateset.min);
+inds = inds(junk);
 driver.jacobian.chanset = inds;
+clear obs junk
 
 [mm,nn] = size(m_ts_jac(inds,:));
 if (length(inds) < nn & driver.oem.dofit)
@@ -16,6 +19,7 @@ if (length(inds) < nn & driver.oem.dofit)
   fprintf(1,'  size jac mm,nn = %4i %4i\n',mm,nn);
   disp('Error: More jacobians than channels!')
 end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% LLS

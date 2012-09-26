@@ -55,7 +55,10 @@ fme  = diag(fme);
 e0 = diag(ncerrors(inds));        
 
 % Error correlation matrix of observations (diagonal)
-se = e0 + fme;  
+se = e0*50 + fme;  
+disp(' ')
+disp('>>>>>>>>>>>>>> e0 --> e0/10 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
+disp(' ')
 se = se.*se;
 
 % xb is the apriori
@@ -84,25 +87,48 @@ if driver.oem.diag_only
 else
   % Multiply entire matrix, but in blocks of column(QST), qlays(Q1 .. QN), templays
   if length(driver.oem.lambda_qst) == 1
+    %% multiply all R(i,j) of the qst part of the matrix, by one number
     r(driver.jacobian.iqst,driver.jacobian.iqst)     = r(driver.jacobian.iqst,driver.jacobian.iqst) * driver.oem.lambda_qst;
-  else
+  elseif length(driver.oem.lambda_qst) == length(driver.jacobian.iqst)
+    %% multiply all R(i,i) of the qst part of the matrix, ,* specified diagnol, making this diagnol
     r(driver.jacobian.iqst,driver.jacobian.iqst)     = r(driver.jacobian.iqst,driver.jacobian.iqst) .* diag(driver.oem.lambda_qst);
+  elseif length(driver.oem.lambda_qst) > length(driver.jacobian.iqst)
+    %% matrix multiply all R(i,j) of the qst part of the matrix, by specified diagnol
+    junk = driver.oem.lambda_qst(1:length(driver.jacobian.iqst));
+    junk = diag(junk);
+    r(driver.jacobian.iqst,driver.jacobian.iqst)     = r(driver.jacobian.iqst,driver.jacobian.iqst) * junk;
   end
 
   for ii = 1 : driver.jacobian.numQlays
     junk = ['lala = driver.oem.lambda_Q' num2str(ii) ';']; eval(junk);
     junk = ['mama = driver.jacobian.iQ' num2str(ii) ';'];  eval(junk);
     if length(lala) == 1
+      %% multiply all R(i,j) of the iQ part of the matrix, by one number
       r(mama,mama) = r(mama,mama) * lala;
-    else
+    elseif length(lala) == length(mama)
+      %% multiply all R(i,i) of the iQ part of the matrix, .* specified diagnol, making this diagnol
       r(mama,mama) = r(mama,mama)  .* diag(lala);
+    elseif length(lala) > length(mama)
+      %% multiply all R(i,j) of the iQ part of the matrix, by specified diagnol
+      junk = lala(1:length(mama));
+      junk = diag(junk);
+      r(mama,mama) = r(mama,mama)  * (junk);
     end
   end
 
+  lala = driver.oem.lambda_temp;
+  mama = driver.jacobian.itemp;
   if length(driver.oem.lambda_temp) == 1
+   %% multiply all R(i,j) of the T part of the matrix, by one number
     r(driver.jacobian.itemp,driver.jacobian.itemp)   = r(driver.jacobian.itemp,driver.jacobian.itemp) * driver.oem.lambda_temp;
-  else
+  elseif length(lala) == length(mama)
+      %% multiply all R(i,i) of the T part of the matrix, .* specified diagnol, making this diagnol
     r(driver.jacobian.itemp,driver.jacobian.itemp)   = r(driver.jacobian.itemp,driver.jacobian.itemp) .* diag(driver.oem.lambda_temp);
+  elseif length(lala) > length(mama)
+    %% multiply all R(i,j) of the iQ part of the matrix, by specified diagnol
+    junk = lala(1:length(mama));
+    junk = diag(junk);
+    r(mama,mama) = r(mama,mama)  * (junk);
   end
 
   % Now add diagonal, but only for T and water
@@ -127,6 +153,9 @@ else
   end
 
 end
+
+%lala = diag(r);
+%save /strowdata1/shared/sergio/MATLABCODE/BUFFER_Fit_pkg/Latbins_rates/junkx.mat r
 
 % Do the retrieval inversion
 dx1    = r + k' * inv_se * k; 

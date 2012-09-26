@@ -8,6 +8,13 @@ function driver = override_defaults(driver,ix);
 load /strowdata1/shared/sergio/MATLABCODE/TMP_RATES_Fit_pkg/Cluster/strow_stmNov2011_dobs20
 driver.jacobian.chanset = dobs20.jacobian.chanset;
 
+%% these are limits for good and bad input SPECTRA
+driver.rateset.max = 320;
+driver.rateset.min = 180;
+%% these are limits for good and bad input SPECTRAL RATES
+driver.rateset.max = +1;
+driver.rateset.min = -1;
+
 %% these are from strow_stmNov2011_dobs20.mat, where Larrabee says he gets
 %%    good CH4 rates
 driver.jacobian.filename = 'M_TS_jac_all.mat';

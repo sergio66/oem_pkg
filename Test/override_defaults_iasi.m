@@ -14,12 +14,19 @@ y = instr_chans('iasi');
 indB = find(y <= 2205);
 driver.jacobian.chanset = indB;
 
+%% these are limits for good and bad input SPECTRA
+driver.rateset.max = 320;
+driver.rateset.min = 180;
+%% these are limits for good and bad input SPECTRAL RATES
+driver.rateset.max = +1;
+driver.rateset.min = -1;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% orig 6_97_97 stuff
 driver.jacobian.filename = ...
   '/home/sergio/MATLABCODE/TMP_RATES_Fit_pkg/Aux_jacs_IASI/AUG21_2011/all_kcarta_jacsB1.mat';
-driver.jacobian.qstnames = {'CO2' 'O3' 'N2O' 'CH4' 'CFC11' 'Stemp'};
+driver.jacobian.qstnames = {'CO2' 'O3' 'N2O' 'CH4' 'CFC11' 'stemp'};
 driver.jacobian.qstYesOrNo = [1     1   1     1      1       1];
 driver.jacobian.numQlays   = 1;   %% have N lays of temp jacs; how many gases we want to retrieve profiles
                                   %% must be at least 1 (for water)

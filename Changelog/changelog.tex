@@ -1,4 +1,4 @@
-% Created 2011-08-25 Thu 19:14
+% Created 2011-08-15 Mon 12:06
 \documentclass[11pt]{article}
                   \usepackage{graphicx}
          \usepackage{longtable}
@@ -10,13 +10,13 @@
          \usepackage{latexsym}
          \usepackage{amssymb}
          \usepackage{hyperref}
-         \input /Users/strow/Tex/Templates/article_setup
+%         \input /Users/strow/Tex/Templates/article_setup
 
 \providecommand{\alert}[1]{\textbf{#1}}
 
 \title{Change Log for Rate Fitting Code}
 \author{L. Strow, S. Desouza-Machado}
-\date{25 August 2011}
+\date{15 August 2011}
 
 \begin{document}
 
@@ -32,16 +32,8 @@
 \end{itemize}
 \section{Changes}
 \label{sec-2}
-\subsection{\textit{2011-08-25 Thu} (LLS)}
-\label{sec-2_1}
-
-
-\begin{itemize}
-\item Fixed problems with adjust$_{\mathrm{rates}}$.
-\item Added diagonal regularization for temp and water
-\end{itemize}
 \subsection{\textit{2011-08-15 Mon} (LLS)}
-\label{sec-2_2}
+\label{sec-2_1}
 
 
 \begin{itemize}
@@ -55,13 +47,9 @@
   is now only used if you invoke regularization only on the diagonal.
 \item Test directory using new covariance matrices (L1 with larger numbers
   for i=1:6) and a true apriori\_zero = all zeros.
-\item In oem$_{\mathrm{lls}}$.m separated mean square variance of the fitted
-  coefficients in three separate parts: gases, water, temp.  Save in
-  driver.oem.coeff$_{\mathrm{var}}$$_{\mathrm{xxx}}$ where xxx = gas,water,temp.  This allows
-  you to do the L-curve separately for each coefficient type.
 \end{itemize}
 \subsection{\textit{2011-08-08 Mon}}
-\label{sec-2_3}
+\label{sec-2_2}
 
 
 \begin{itemize}
@@ -83,7 +71,7 @@
 \item NOTE: testing now done with a L1 matrix (unity lambda2)
 \end{itemize}
 \subsection{\textit{2011-08-05 08:00}}
-\label{sec-2_4}
+\label{sec-2_3}
 
 
 \begin{itemize}
@@ -91,7 +79,7 @@
   cluster, using run\_tara
 \end{itemize}
 \subsection{\textit{2011-08-04 21:00}}
-\label{sec-2_5}
+\label{sec-2_4}
 
 
 \begin{itemize}
@@ -107,22 +95,21 @@ end
 \end{verbatim}
 \end{itemize}
 \subsection{\textit{2011-08-02 05:05}}
-\label{sec-2_6}
+\label{sec-2_5}
 
 
 \begin{itemize}
 \item jacobian file now has the qrenormalization information
 \end{itemize}
 \subsection{\textit{2011-08-01 21:50}}
-\label{sec-2_7}
-
+\label{sec-2_6}
 
 \begin{itemize}
 \item driver.map\_jac2cov allows you to map indices from Jacobian to Covariance
 \end{itemize}
-\subsection{\textit{2011-08-01 14:14}}
-\label{sec-2_8}
 
+\subsection{\textit{2011-08-01 14:14}}
+\label{sec-2_7}
 
 \begin{itemize}
 \item Covariance matrix format changed; no top level structure name.
@@ -140,6 +127,52 @@ end
   These scripts are in the \texttt{Debug} directory.
 \item Created directory Changelog to hold this file and its various output
   formats.
+\end{itemize}
+
+\begin{itemize}
+\item driver.map\_jac2cov allows you to map indices from Jacobian to Covariance
+\end{itemize}
+
+\subsection{\textit{2012-08-27 to 2012-09-27}}
+\label{sec-2_8}
+
+\begin{itemize}
+
+\item the column jacs/stemp are now controlled by driver.jacobian.qstnames and driver.jacobian.qstYesOrNo; the former gives
+      the names while the latter tells the code whether to turn the jac on or off. For example
+
+\begin{verbatim}
+driver.jacobian.qstnames = {'CO2trop' 'CO2strat' 'O3trop' 'O3strat' 'N2O' 'CO' 'CH4' 'CFC11' 'HDO' 'stemp'};
+driver.jacobian.qstYesOrNo = [1       1          1        1         1     1     1    1       1     1];
+\end{verbatim}
+
+\item the number of layers for (Q1,Q2 .. QN,T) must be the same, and sepecified by driver.jacobian.numlays (default 97). In addition,
+you can have more than one radiating gas whose profile you want to rtrieve; this is contolled by driver.jacobian.numQlays
+So for example if you wish to retrieve 97 layer profiles for H2O and HDO use
+
+\begin{verbatim}
+driver.jacobian.numlays     = 97;
+driver.jacobian.numQlays    = 2;                         %% in addition to water, we are adding on HDO
+driver.jacobian.Q2jacindex  = 1:97;
+\end{verbatim}
+
+\item Changed the $\lambda$ parameters so you either send in one constant value for all column jacs/stemp, water vapor layers and
+temperature layers OR can send in individual parameters for each of the jacs that you are sending in \\
+
+\begin{small}
+\begin{verbatim}
+a) driver.oem.lambda_qst can be length(1)             in which case all  "gases" get the same diag element or
+   driver.oem.lambda_qst can be length(qst)           in which case each "gases" get indiv    diag element, but matrix is diagnol
+   driver.oem.lambda_qst can be [length(qst) -9999]   in which case each "gases" get indiv    diag element, matrix is not diagnol
+b) driver.oem.lambda_Qn can be length(1)              in which case all  "Qn" lays get the same diag element or
+   driver.oem.lambda_Qn can be length(Qn)             in which case each "Qn" lays get indiv    diag element, but matrix is diagnol
+   driver.oem.lambda_Qn can be [length(Qn) -9999]     in which case each "Qn" lays get indiv    diag element, matrix is not diagnol
+c) driver.oem.lambda_temp can be length(1)            in which case all  "temps" get the same diag element or
+   driver.oem.lambda_temp can be length(itemp)        in which case each "temps" get indiv    diag element, but matrix is diagnol
+   driver.oem.lambda_temp can be [length(itemp) -9999]in which case each "temps" get indiv    diag element, matrix is not diagnol
+\end{verbatim}
+\end{small}
+
 \end{itemize}
 
 \end{document}
