@@ -1,4 +1,4 @@
-function [rodgers_rate,errorx,dofs,gain,ak,inds] = rodgers(driver,aux_stuff)
+function [rodgers_rate,errorx,dofs,gain,ak,inds,Se_errors] = rodgers(driver,aux_stuff)
 
 %---------------------------------------------------------------------------
 % OEM retrieval
@@ -16,6 +16,8 @@ function [rodgers_rate,errorx,dofs,gain,ak,inds] = rodgers(driver,aux_stuff)
 % deg of freedom     = dofs
 % gain matrix        = gain
 % averaging kernel   = ak
+% inds               = what channels used
+% Se_errors          = uncertainties used in building up Se matrix (from obs and forward model)
 %---------------------------------------------------------------------------
 
 % Load and subset relaxation matrix
@@ -44,12 +46,15 @@ inds     = driver.jacobian.chanset;
 % Apriori state
 xb       = aux_stuff.xb;
 % Observation errors
-ncerrors = aux_stuff.ncerrors * driver.rateset.adjust_spectral_errorbars;
+ncerrors = aux_stuff.ncerrors * driver.oem.adjust_spectral_errorbars;
 
 % Covariance (uncertainties/correlations) of measurements
 lenr = length(inds);
 fme  = ones(1,lenr)*driver.sarta_error;
 fme  = diag(fme);          
+
+Se_errors.ncerrors = ncerrors;
+Se_errors.fmerrors = ones(size(ncerrors)) * driver.sarta_error;
 
 % Obs errors with serial correlation correction
 e0 = diag(ncerrors(inds));        

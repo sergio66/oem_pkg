@@ -49,7 +49,7 @@ driver.rateset.ocb_set  = 'obs';
 
 % when you read in the delta(BTs) you can adjust them by multiplying by a scale factor
 % this affect the Se matrix, and therefore the reported uncertainties in retrieved params
-driver.rateset.adjust_spectral_errorbars = 1;
+driver.oem.adjust_spectral_errorbars = 1;
 
 % Remove known rates?
 driver.rateset.adjust  = false;
