@@ -44,7 +44,7 @@ inds     = driver.jacobian.chanset;
 % Apriori state
 xb       = aux_stuff.xb;
 % Observation errors
-ncerrors = aux_stuff.ncerrors;
+ncerrors = aux_stuff.ncerrors * driver.rateset.adjust_spectral_errorbars;
 
 % Covariance (uncertainties/correlations) of measurements
 lenr = length(inds);
@@ -55,10 +55,7 @@ fme  = diag(fme);
 e0 = diag(ncerrors(inds));        
 
 % Error correlation matrix of observations (diagonal)
-se = e0*50 + fme;  
-disp(' ')
-disp('>>>>>>>>>>>>>> e0 --> e0/10 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
-disp(' ')
+se = e0 + fme;  
 se = se.*se;
 
 % xb is the apriori

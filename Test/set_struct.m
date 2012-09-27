@@ -47,6 +47,10 @@ driver.jacobian.chanset = goodchan;   % 1500 channels
 % Do one of [obs][cal][biases] 
 driver.rateset.ocb_set  = 'obs';
 
+% when you read in the delta(BTs) you can adjust them by multiplying by a scale factor
+% this affect the Se matrix, and therefore the reported uncertainties in retrieved params
+driver.rateset.adjust_spectral_errorbars = 1;
+
 % Remove known rates?
 driver.rateset.adjust  = false;
 driver.rateset.adjust_index  = [1   103 200];
