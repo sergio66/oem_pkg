@@ -1,4 +1,4 @@
-This is pdfeTeX, Version 3.141592-1.21a-2.2 (Web2C 7.5.4) (format=pdflatex 2011.6.14)  6 SEP 2012 22:54
+This is pdfeTeX, Version 3.141592-1.21a-2.2 (Web2C 7.5.4) (format=pdflatex 2011.6.14)  27 SEP 2012 11:07
 entering extended mode
 \write18 enabled.
 **changelog.tex
@@ -124,4 +124,269 @@ LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
 (Font)                  U/euf/m/n --> U/euf/b/n on input line 132.
 ))
 (/usr/share/texmf/tex/latex/hyperref/hyperref.sty
-Package: hyperref 20
+Package: hyperref 2003/11/30 v6.74m Hypertext links for LaTeX
+\@linkdim=\dimen111
+\Hy@linkcounter=\count95
+\Hy@pagecounter=\count96
+
+(/usr/share/texmf/tex/latex/hyperref/pd1enc.def
+File: pd1enc.def 2003/11/30 v6.74m Hyperref: PDFDocEncoding definition (HO)
+)
+(/usr/share/texmf/tex/latex/hyperref/hyperref.cfg
+File: hyperref.cfg 2002/06/06 v1.2 hyperref configuration of TeXLive and teTeX
+)
+Package hyperref Info: Hyper figures OFF on input line 1880.
+Package hyperref Info: Link nesting OFF on input line 1885.
+Package hyperref Info: Hyper index ON on input line 1888.
+Package hyperref Info: Plain pages ON on input line 1893.
+Package hyperref Info: Backreferencing OFF on input line 1900.
+
+Implicit mode ON; LaTeX internals redefined
+Package hyperref Info: Bookmarks ON on input line 2004.
+(/usr/share/texmf/tex/latex/url/url.sty
+\Urlmuskip=\muskip10
+Package: url 2004/03/15  ver 3.1  Verb mode for urls, etc.
+)
+LaTeX Info: Redefining \url on input line 2143.
+\Fld@menulength=\count97
+\Field@Width=\dimen112
+\Fld@charsize=\dimen113
+\Choice@toks=\toks25
+\Field@toks=\toks26
+Package hyperref Info: Hyper figures OFF on input line 2618.
+Package hyperref Info: Link nesting OFF on input line 2623.
+Package hyperref Info: Hyper index ON on input line 2626.
+Package hyperref Info: backreferencing OFF on input line 2633.
+Package hyperref Info: Link coloring OFF on input line 2638.
+\c@Item=\count98
+\c@Hfootnote=\count99
+)
+*hyperref using default driver hpdftex*
+(/usr/share/texmf/tex/latex/hyperref/hpdftex.def
+File: hpdftex.def 2003/11/30 v6.74m Hyperref driver for pdfTeX
+
+(/usr/share/texmf/tex/latex/psnfss/pifont.sty
+Package: pifont 2004/09/15 PSNFSS-v9.2 Pi font support (SPQR) 
+LaTeX Font Info:    Try loading font information for U+pzd on input line 63.
+
+(/usr/share/texmf/tex/latex/psnfss/upzd.fd
+File: upzd.fd 2001/06/04 font definitions for U/pzd.
+)
+LaTeX Font Info:    Try loading font information for U+psy on input line 64.
+
+(/usr/share/texmf/tex/latex/psnfss/upsy.fd
+File: upsy.fd 2001/06/04 font definitions for U/psy.
+))
+\Fld@listcount=\count100
+\@outlinefile=\write3
+) (./changelog.aux)
+\openout1 = `changelog.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 21.
+LaTeX Font Info:    ... okay on input line 21.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 21.
+LaTeX Font Info:    ... okay on input line 21.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 21.
+LaTeX Font Info:    ... okay on input line 21.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 21.
+LaTeX Font Info:    ... okay on input line 21.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 21.
+LaTeX Font Info:    ... okay on input line 21.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 21.
+LaTeX Font Info:    ... okay on input line 21.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 21.
+LaTeX Font Info:    ... okay on input line 21.
+
+(/usr/share/texmf/tex/context/base/supp-pdf.tex
+(/usr/share/texmf/tex/context/base/supp-mis.tex
+loading : Context Support Macros / Miscellaneous (2004.10.26)
+\protectiondepth=\count101
+\scratchcounter=\count102
+\scratchtoks=\toks27
+\scratchdimen=\dimen114
+\scratchskip=\skip48
+\scratchmuskip=\muskip11
+\scratchbox=\box33
+\scratchread=\read1
+\scratchwrite=\write4
+\zeropoint=\dimen115
+\onepoint=\dimen116
+\onebasepoint=\dimen117
+\minusone=\count103
+\thousandpoint=\dimen118
+\onerealpoint=\dimen119
+\emptytoks=\toks28
+\nextbox=\box34
+\nextdepth=\dimen120
+\everyline=\toks29
+\!!counta=\count104
+\!!countb=\count105
+\recursecounter=\count106
+)
+loading : Context Support Macros / PDF (2004.03.26)
+\nofMPsegments=\count107
+\nofMParguments=\count108
+\MPscratchCnt=\count109
+\MPscratchDim=\dimen121
+\MPnumerator=\count110
+\everyMPtoPDFconversion=\toks30
+)
+Package hyperref Info: Link coloring OFF on input line 21.
+ (/usr/share/texmf/tex/latex/hyperref/nameref.sty
+Package: nameref 2003/12/03 v2.21 Cross-referencing by name of section
+\c@section@level=\count111
+)
+LaTeX Info: Redefining \ref on input line 21.
+LaTeX Info: Redefining \pageref on input line 21.
+ (./changelog.out)
+(./changelog.out)
+\openout3 = `changelog.out'.
+
+LaTeX Font Info:    Try loading font information for U+wasy on input line 24.
+ (/usr/share/texmf/tex/latex/wasysym/uwasy.fd
+File: uwasy.fd 2003/10/30 v2.0 Wasy-2 symbol font definitions
+)
+LaTeX Font Info:    Try loading font information for U+lasy on input line 24.
+
+(/usr/share/texmf/tex/latex/base/ulasy.fd
+File: ulasy.fd 1998/08/17 v2.2e LaTeX symbol font definitions
+)
+LaTeX Font Info:    Try loading font information for U+msa on input line 24.
+
+(/usr/share/texmf/tex/latex/amsfonts/umsa.fd
+File: umsa.fd 2002/01/19 v2.2g AMS font definitions
+)
+LaTeX Font Info:    Try loading font information for U+msb on input line 24.
+
+(/usr/share/texmf/tex/latex/amsfonts/umsb.fd
+File: umsb.fd 2002/01/19 v2.2g AMS font definitions
+)
+LaTeX Font Info:    Try loading font information for OMS+cmr on input line 31.
+
+(/usr/share/texmf/tex/latex/base/omscmr.fd
+File: omscmr.fd 1999/05/25 v2.5h Standard LaTeX font definitions
+)
+LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10.95> not available
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 31.
+
+Overfull \hbox (24.57881pt too wide) in paragraph at lines 40--42
+[]\OT1/cmr/m/n/10.95 Jacobians now nor-mal-ized. max(sum(abs(temp))) = max(sum(
+abs(water)))
+ []
+
+[1
+
+{/usr/share/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
+Overfull \hbox (11.77127pt too wide) in paragraph at lines 87--90
+[]\OT1/cmr/m/n/10.95 these are then over-writ-ten by call-ing driver = over-rid
+e[]defaults(driver,ix);
+ []
+
+
+Overfull \hbox (20.36276pt too wide) in paragraph at lines 115--117
+[]\OT1/cmr/m/n/10.95 Covariance ma-trix for-mat changed; no top level struc-tur
+e name. \OT1/cmtt/m/n/10.95 oem[]lls.m
+ []
+
+[2]
+Overfull \hbox (288.23334pt too wide) in paragraph at lines 151--151
+ []\OT1/cmtt/m/n/10.95 driver.jacobian.qstnames = {'CO2trop' 'CO2strat' 'O3trop
+' 'O3strat' 'N2O' 'CO' 'CH4' 'CFC11' 'HDO' 'stemp'};[] 
+ []
+
+
+Overfull \hbox (253.74121pt too wide) in paragraph at lines 151--151
+ []\OT1/cmtt/m/n/10.95 driver.jacobian.qstYesOrNo = [1       1          1      
+  1         1     1     1    1       1     1];[] 
+ []
+
+
+Overfull \hbox (253.74121pt too wide) in paragraph at lines 161--161
+ []\OT1/cmtt/m/n/10.95 driver.jacobian.numQlays    = 2;                        
+ %% in addition to water, we are adding on HDO[] 
+ []
+
+[3]
+Underfull \hbox (badness 10000) in paragraph at lines 163--165
+
+ []
+
+
+Overfull \hbox (239.62007pt too wide) in paragraph at lines 177--177
+ []\OT1/cmtt/m/n/10 a) driver.oem.lambda_qst can be length(1)             in wh
+ich case all  "gases" get the same diag element or[] 
+ []
+
+
+Overfull \hbox (344.61916pt too wide) in paragraph at lines 177--177
+ []   \OT1/cmtt/m/n/10 driver.oem.lambda_qst can be length(qst)           in wh
+ich case each "gases" get indiv    diag element, but matrix is diagnol[] 
+ []
+
+
+Overfull \hbox (344.61916pt too wide) in paragraph at lines 177--177
+ []   \OT1/cmtt/m/n/10 driver.oem.lambda_qst can be [length(qst) -9999]   in wh
+ich case each "gases" get indiv    diag element, matrix is not diagnol[] 
+ []
+
+
+Overfull \hbox (250.11998pt too wide) in paragraph at lines 177--177
+ []\OT1/cmtt/m/n/10 b) driver.oem.lambda_Qn can be length(1)              in wh
+ich case all  "Qn" lays get the same diag element or[] 
+ []
+
+
+Overfull \hbox (355.11906pt too wide) in paragraph at lines 177--177
+ []   \OT1/cmtt/m/n/10 driver.oem.lambda_Qn can be length(Qn)             in wh
+ich case each "Qn" lays get indiv    diag element, but matrix is diagnol[] 
+ []
+
+
+Overfull \hbox (355.11906pt too wide) in paragraph at lines 177--177
+ []   \OT1/cmtt/m/n/10 driver.oem.lambda_Qn can be [length(Qn) -9999]     in wh
+ich case each "Qn" lays get indiv    diag element, matrix is not diagnol[] 
+ []
+
+
+Overfull \hbox (239.62007pt too wide) in paragraph at lines 177--177
+ []\OT1/cmtt/m/n/10 c) driver.oem.lambda_temp can be length(1)            in wh
+ich case all  "temps" get the same diag element or[] 
+ []
+
+
+Overfull \hbox (344.61916pt too wide) in paragraph at lines 177--177
+ []   \OT1/cmtt/m/n/10 driver.oem.lambda_temp can be length(itemp)        in wh
+ich case each "temps" get indiv    diag element, but matrix is diagnol[] 
+ []
+
+
+Overfull \hbox (344.61916pt too wide) in paragraph at lines 177--177
+ []   \OT1/cmtt/m/n/10 driver.oem.lambda_temp can be [length(itemp) -9999]in wh
+ich case each "temps" get indiv    diag element, matrix is not diagnol[] 
+ []
+
+[4] (./changelog.aux)
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+ ) 
+Here is how much of TeX's memory you used:
+ 3675 strings out of 94500
+ 46589 string characters out of 1176766
+ 97897 words of memory out of 1000000
+ 6775 multiletter control sequences out of 10000+50000
+ 14337 words of font info for 57 fonts, out of 500000 for 2000
+ 580 hyphenation exceptions out of 1000
+ 27i,6n,36p,225b,317s stack positions out of 1500i,500n,5000p,200000b,5000s
+PDF statistics:
+ 87 PDF objects out of 300000
+ 15 named destinations out of 131072
+ 81 words of extra memory for PDF output out of 65536
+</usr/share/texmf/fonts/type1/bluesky/cm/cmmi10.pfb></usr/share/texmf/fonts/t
+ype1/bluesky/cm/cmtt10.pfb></usr/share/texmf/fonts/type1/bluesky/cm/cmbx10.pfb>
+</usr/share/texmf/fonts/type1/bluesky/cm/cmr8.pfb></usr/share/texmf/fonts/type1
+/bluesky/cm/cmbxti10.pfb></usr/share/texmf/fonts/type1/bluesky/cm/cmr10.pfb></u
+sr/share/texmf/fonts/type1/bluesky/cm/cmsy10.pfb></usr/share/texmf/fonts/type1/
+bluesky/cm/cmbx12.pfb></usr/share/texmf/fonts/type1/bluesky/cm/cmr12.pfb></usr/
+share/texmf/fonts/type1/bluesky/cm/cmr17.pfb>
+Output written on changelog.pdf (4 pages, 75732 bytes).
