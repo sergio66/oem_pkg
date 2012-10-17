@@ -82,8 +82,11 @@ driver.sarta_error = 0.0;
 driver.oem.othergases = -1;   %% -1 means NO, +X means yes, X more gases
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-load /strowdata1/shared/sergio/MATLABCODE/TMP_RATES_Fit_pkg/Cluster/strow_stmNov2011_dobs20
-driver.jacobian.chanset = dobs20.jacobian.chanset;
+%% NOTE THE DEFAULTS ARE FOR AIRS
+
+load airs_test_chanset.mat
+driver.jacobian.chanset = chanset;
+clear chanset
 
 %% these are from strow_stmNov2011_dobs20.mat, where Larrabee says he gets
 %%    good CH4 rates

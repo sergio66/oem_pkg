@@ -5,8 +5,8 @@ function driver = override_defaults(driver,ix);
 %   ix
 %   clear driver; run_retrieval; end
 
-load /strowdata1/shared/sergio/MATLABCODE/TMP_RATES_Fit_pkg/Cluster/strow_stmNov2011_dobs20
-driver.jacobian.chanset = dobs20.jacobian.chanset;
+load airs_test_chanset.mat
+driver.jacobian.chanset = chanset;
 
 %% these are limits for good and bad input SPECTRA
 driver.rateset.max = 320;
