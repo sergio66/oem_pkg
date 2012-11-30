@@ -86,7 +86,9 @@ inv_se = diag(1./diag(se));
 if driver.oem.diag_only
   % Paul's suggestion to access the diagonal
   r(1:size(r,1)+1:end) = r(1:size(r,1)+1:end) * driver.oem.lambda;
+
 else
+  %%%%%%%%%%%%%%%%%%%% this is for QST ie the SINGLE COLUMN gases and SST
   % Multiply entire matrix, but in blocks of column(QST), qlays(Q1 .. QN), templays
   if length(driver.oem.lambda_qst) == 1
     %% multiply all R(i,j) of the qst part of the matrix, by one number
@@ -101,6 +103,7 @@ else
     r(driver.jacobian.iqst,driver.jacobian.iqst)     = r(driver.jacobian.iqst,driver.jacobian.iqst) * junk;
   end
 
+  %%%%%%%%%%%%%%%%%%%% this is for Q(z) ie the MULTICOLUMN gases
   for ii = 1 : driver.jacobian.numQlays
     junk = ['lala = driver.oem.lambda_Q' num2str(ii) ';']; eval(junk);
     junk = ['mama = driver.jacobian.iQ' num2str(ii) ';'];  eval(junk);
@@ -118,13 +121,14 @@ else
     end
   end
 
+  %%%%%%%%%%%%%%%%%%%% this is for T(z) ie the MULTICOLUMN temperature
   lala = driver.oem.lambda_temp;
   mama = driver.jacobian.itemp;
   if length(driver.oem.lambda_temp) == 1
-   %% multiply all R(i,j) of the T part of the matrix, by one number
+    %% multiply all R(i,j) of the T part of the matrix, by one number
     r(driver.jacobian.itemp,driver.jacobian.itemp)   = r(driver.jacobian.itemp,driver.jacobian.itemp) * driver.oem.lambda_temp;
   elseif length(lala) == length(mama)
-      %% multiply all R(i,i) of the T part of the matrix, .* specified diagnol, making this diagnol
+    %% multiply all R(i,i) of the T part of the matrix, .* specified diagnol, making this diagnol
     r(driver.jacobian.itemp,driver.jacobian.itemp)   = r(driver.jacobian.itemp,driver.jacobian.itemp) .* diag(driver.oem.lambda_temp);
   elseif length(lala) > length(mama)
     %% multiply all R(i,j) of the iQ part of the matrix, by specified diagnol
