@@ -27,8 +27,11 @@ driver.filename = ['test1_' int2str(driver.iibin)];
 % Observed rate file
 driver.rateset.datafile = 'fitout_8year_v4_robust.mat';
 
-% Covariance file
+% Covariance file for retrieved params Q WV T
 driver.oem.cov_filename = 'cov_lls.mat';
+
+% Covariance file for spectra
+driver.oem.spectralcov_filename = 'junk';
 
 % Apriori file
 driver.oem.apriori_filename = 'apriori_zero';

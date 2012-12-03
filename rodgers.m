@@ -57,7 +57,28 @@ Se_errors.ncerrors = ncerrors;
 Se_errors.fmerrors = ones(size(ncerrors)) * driver.sarta_error;
 
 % Obs errors with serial correlation correction
-e0 = diag(ncerrors(inds));        
+xe0 = diag(ncerrors(inds));        
+if ~strcmp('junk',driver.oem.spectralcov_filename)
+  spectral_cov = load(driver.oem.spectralcov_filename);
+  dacov = spectral_cov.dacov;
+  %% make sure there are some entries here!!!! ie not all zeros
+  if nansum(diag(abs(dacov))) > 0
+    e0 = dacov(inds,inds);
+    %% now need to normalize
+    xdiag = diag(xe0);
+    xij = xdiag * xdiag';
+    thediag = diag(e0);
+    oo = find(isnan(e0(:))); e0(oo) = 0;
+    oo = find(isinf(e0(:))); e0(oo) = 0;
+    whos e0 xe0 xdiag
+    e0 = e0 * nanmean(xdiag)/nanmean(diag(e0));
+  else
+    e0 = xe0;
+    fprintf(1,'Warning : not using spectral covs from %s as they are NaNs \n',driver.oem.spectralcov_filename)
+  end
+else  %% just use ncerrors
+  e0 = xe0;
+end
 
 % Error correlation matrix of observations (diagonal)
 se = e0 + fme;  
@@ -81,6 +102,7 @@ deltan = driver.rateset.rates(inds) - fx(inds);
 
 % Do this once to save time, assume diagonal, no need for pinv
 inv_se = diag(1./diag(se));
+oo = find(isinf(inv_se) | isnan(inv_se)); inv_se(oo) = 0;
 
 % Apply regularization multiplier
 if driver.oem.diag_only
@@ -159,9 +181,6 @@ else
   end
 
 end
-
-%lala = diag(r);
-%save /strowdata1/shared/sergio/MATLABCODE/BUFFER_Fit_pkg/Latbins_rates/junkx.mat r
 
 % Do the retrieval inversion
 dx1    = r + k' * inv_se * k; 
