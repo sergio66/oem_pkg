@@ -30,8 +30,8 @@ driver.rateset.datafile = 'fitout_8year_v4_robust.mat';
 % Covariance file for retrieved params Q WV T
 driver.oem.cov_filename = 'cov_lls.mat';
 
-% Covariance file for spectra
-driver.oem.spectralcov_filename = 'junk';
+% Covariance file for spectra : assume originally it DoesNotExist
+driver.oem.spectralcov_filename = 'dne';
 
 % Apriori file
 driver.oem.apriori_filename = 'apriori_zero';
