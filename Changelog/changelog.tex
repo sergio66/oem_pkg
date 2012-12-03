@@ -176,7 +176,13 @@ c) driver.oem.lambda_temp can be length(1)            in which case all  "temps"
    driver.oem.lambda_temp can be [length(itemp) -9999]in which case each "temps" get indiv    diag element, matrix is not diagnol
 \end{verbatim}
 \end{small}
-
 \end{itemize}
+
+\subsection{\textit{2012-11-30 to 2012-12-03}}
+\label{sec-2_9}
+Updated rodgers.m so that it accepts driver.oem.spectralcov_filename for spectral covariance
+Note this meant also had to do some error shecking on inv_se in same matlab source code
+This is in flux; may have to change the normalization of the pectral covariance
+
 
 \end{document}
