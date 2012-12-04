@@ -1,0 +1,52 @@
+Spectral Rates and Uncertainties
+--------------------------------
+
+>> driver.rateset
+         datafile: '../MakeERA_ratespectra/syntheticERArates.mat'
+           ncfile: 'all_lagcor.mat'
+          ocb_set: 'obs'
+           adjust: 0
+     adjust_index: [1 103 200]
+    adjust_values: [2.2000 0.0100 0.0100]
+              max: 0.2500
+              min: -0.2500
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+driver.ocb_set = 'obs' 'bias' or 'cal'
+
+driver.rateset.datafile
+  AIRS mat file that contains
+    b_err_obs         36x2378x10            13697280  double   
+    b_obs             36x2378x10             6848640  double              
+  IASI mat file that contains
+    b_err_obs      36x8461x10            24367680  double              
+    b_obs          36x8461x10            24367680  double              
+and similarly for b_cal and b_bias as needed
+These are the linear tends and errors, and the code reads in x(iibin,:,2)
+ie the linear trend and rates are in the second index of 3rd dim
+
+driver.ncfile
+  File that contains the uncorrelated errors
+  If this name is left unspecified, or filled with "dne" then the code does not look for this file
+  If this name is specfied, then the following are expected (depending on "ocb" setting)
+    lagcor_bias_anom: [36x2378 double]
+     lagcor_obs_anom: [36x2378 double]
+     lagcor_cal_anom: [36x2378 double]
+  and code reads in x(iibin,:)
+
+driver.adjust
+  do you want to Removes "known" components of the rate spectra
+  This is actually  accomplished using Test/run_retrieval.m
+     or                       Latbins_rates/run_retrieval_latbins_AIRS.m
+  if d.rateset.adjust
+    jacs0 = get_jacs0(d);
+    d = adjust_rates(d,jacs0);
+  end
+  and uses the variables
+     driver.adjust_index: [1 103 200]
+     driver.adjust_values: [2.2000 0.0100 0.0100]
+
+driver.rateset.max
+driver.rateset.min
+  These variables are used to cutoff the rates read from driver.rateset.datafile 
+ 

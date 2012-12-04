@@ -1,0 +1,6 @@
+This is what you need to define the "driver" structure
+
+vars_rateset.txt  : where to find linear trend [rateset + unc], nc errorfile etc
+vars_jacobian.txt : how to set the jacobian
+vars_oem.txt      : how to set the oem params
+vars_other.txt    : various stuff

@@ -50,11 +50,11 @@ ncerrors = aux_stuff.ncerrors * driver.oem.adjust_spectral_errorbars;
 
 % Covariance (uncertainties/correlations) of measurements
 lenr = length(inds);
-fme  = ones(1,lenr)*driver.sarta_error;
+fme  = ones(1,lenr)*driver.oem.sarta_error;
 fme  = diag(fme);          
 
 Se_errors.ncerrors = ncerrors;
-Se_errors.fmerrors = ones(size(ncerrors)) * driver.sarta_error;
+Se_errors.fmerrors = ones(size(ncerrors)) * driver.oem.sarta_error;
 
 %% get 2378x2378 spectral cov matrix
 e0 = get_spectral_covariances(driver,ncerrors,inds);

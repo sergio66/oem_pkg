@@ -1,0 +1,13 @@
+Auxiliary info 
+--------------
+
+driver = 
+          debug: 0                        0/1 for N/Y
+
+          iibin: 2                        which of the 36 latitude bins to process
+
+      debug_dir: '../Debug'               name of dir to dump out some debug info to
+
+       filename: '../Output/testx_2'      name of file to dump out results to
+
+

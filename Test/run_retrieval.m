@@ -25,7 +25,7 @@ d.iibin                = 18;
 %% edit the settings in these files as wanted
 
 d = override_defaults_airs(d,d.iibin);
-% d = override_defaults_iasi(d,d.iibin);
+%d = override_defaults_iasi(d,d.iibin);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Get rates and and jacs

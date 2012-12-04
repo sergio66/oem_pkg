@@ -33,11 +33,15 @@ driver.oem.cov_filename = 'cov_lls.mat';
 % Covariance file for spectra : assume originally it DoesNotExist
 driver.oem.spectralcov_filename = 'dne';
 
+% sarta Forward Model error at all channels
+driver.oem.sarta_error = 0.0;
+
 % Apriori file
 driver.oem.apriori_filename = 'apriori_zero';
 
 % Lag-1 correlation file
 driver.rateset.ncfile   = 'all_lagcor.mat';
+driver.rateset.ncfile   = 'dne';
 
 % Jacobian file: f = 2378x1 and M_TS_jac_all = 36x2378x200
 driver.jacobian.filename = 'M_TS_jac_all.mat';
@@ -96,7 +100,6 @@ clear chanset
 driver.jacobian.filename = 'M_TS_jac_all.mat';
 
 driver.rateset.datafile = 'fitout_8year_v4_robust.mat';
-driver.rateset.ncfile   = 'all_lagcor.mat';
 driver.rateset.ocb_set  = 'obs';
 driver.rateset.adjust   = 0;
 

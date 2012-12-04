@@ -1,0 +1,34 @@
+Setting up the Jacobian
+------------------------
+
+driver.jacobian 
+      filename: 'M_TS_jac_all.mat'
+       chanset: [1x1335 double]
+      numQlays: 1
+       numlays: 97
+      qstnames: {'CO2'  'O3'  'N2O'  'CH4'  'CFC11'  'stemp'}
+    qstYesOrNo: [1 1 1 1 1 1]
+    Q1jacindex: [1x97 double]
+     tjacindex: [1x97 double]
+
+filename
+  this MAT file contains the channel freqs, jacobians, as well as the normalizations used in making the jacobians
+
+               f: [2378x1 double]
+    M_TS_jac_all: [36x2378x200 double]
+         qrenorm: [1x200 double]
+
+            str1: {'CO2'  'O3'  'N2O'  'CFC11'  'ST'  'WV(97)'  'T(97)'}
+            str2: '[ [2.2 0.01 1.0 5 1 0.1] [0.01*ones(1,97)] [0.01*ones(1,97)]]'
+
+chanset
+  which of the 2378 (or 8462) chans to use in the retrieval
+
+numlays  : when doing Q1(z),Q2(z), ..QN(z) and T(z), how many layers to expect
+numQlays : tells how many QN gases we have (must be at least 1 which is typically assumed to be WV)
+         : always assumes we have info for T(z)
+Q1jacindex : indices to state which layers to use
+tjacindex  : indices to state which layers to use
+
+qstnames : what column jacs we have eg CO2, O3strat, O3trop, stemp, HDO
+qstYesOrNo : indices to state which of these gases to use

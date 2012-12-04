@@ -26,36 +26,36 @@ else
 
   %%%%%%%%%%%%%%%%%%%% this is for Q(z) ie the MULTICOLUMN gases
   for ii = 1 : driver.jacobian.numQlays
-    junk = ['lala = driver.oem.lambda_Q' num2str(ii) ';']; eval(junk);
-    junk = ['mama = driver.jacobian.iQ' num2str(ii) ';'];  eval(junk);
-    if length(lala) == 1
+    junk = ['junkstr1 = driver.oem.lambda_Q' num2str(ii) ';']; eval(junk);
+    junk = ['junkstr2 = driver.jacobian.iQ' num2str(ii) ';'];  eval(junk);
+    if length(junkstr1) == 1
       %% multiply all R(i,j) of the iQ part of the matrix, by one number
-      r(mama,mama) = r(mama,mama) * lala;
-    elseif length(lala) == length(mama)
+      r(junkstr2,junkstr2) = r(junkstr2,junkstr2) * junkstr1;
+    elseif length(junkstr1) == length(junkstr2)
       %% multiply all R(i,i) of the iQ part of the matrix, .* specified diagnol, making this diagnol
-      r(mama,mama) = r(mama,mama)  .* diag(lala);
-    elseif length(lala) > length(mama)
+      r(junkstr2,junkstr2) = r(junkstr2,junkstr2)  .* diag(junkstr1);
+    elseif length(junkstr1) > length(junkstr2)
       %% multiply all R(i,j) of the iQ part of the matrix, by specified diagnol
-      junk = lala(1:length(mama));
+      junk = junkstr1(1:length(junkstr2));
       junk = diag(junk);
-      r(mama,mama) = r(mama,mama)  * (junk);
+      r(junkstr2,junkstr2) = r(junkstr2,junkstr2)  * (junk);
     end
   end
 
   %%%%%%%%%%%%%%%%%%%% this is for T(z) ie the MULTICOLUMN temperature
-  lala = driver.oem.lambda_temp;
-  mama = driver.jacobian.itemp;
+  junkstr1 = driver.oem.lambda_temp;
+  junkstr2 = driver.jacobian.itemp;
   if length(driver.oem.lambda_temp) == 1
     %% multiply all R(i,j) of the T part of the matrix, by one number
     r(driver.jacobian.itemp,driver.jacobian.itemp)   = r(driver.jacobian.itemp,driver.jacobian.itemp) * driver.oem.lambda_temp;
-  elseif length(lala) == length(mama)
+  elseif length(junkstr1) == length(junkstr2)
     %% multiply all R(i,i) of the T part of the matrix, .* specified diagnol, making this diagnol
     r(driver.jacobian.itemp,driver.jacobian.itemp)   = r(driver.jacobian.itemp,driver.jacobian.itemp) .* diag(driver.oem.lambda_temp);
-  elseif length(lala) > length(mama)
+  elseif length(junkstr1) > length(junkstr2)
     %% multiply all R(i,j) of the iQ part of the matrix, by specified diagnol
-    junk = lala(1:length(mama));
+    junk = junkstr1(1:length(junkstr2));
     junk = diag(junk);
-    r(mama,mama) = r(mama,mama)  * (junk);
+    r(junkstr2,junkstr2) = r(junkstr2,junkstr2)  * (junk);
   end
 
   % Now add diagonal, but only for T and water
