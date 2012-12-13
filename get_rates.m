@@ -8,7 +8,7 @@ else
   bwah1 = load(driver.rateset.datafile);
   xdatafile = driver.rateset.datafile;
   ooh = strfind(driver.rateset.datafile,'iasiB1');
-  xdatafile(ooh+5:ooh+5) = '2'
+  xdatafile(ooh+5:ooh+5) = '2';
   bwah2 = load(xdatafile);
 
   b_obs = cat(2,bwah1.b_obs,bwah2.b_obs);

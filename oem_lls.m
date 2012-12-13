@@ -53,7 +53,9 @@ driver.lls.fit       = thefit;
 % Don't do OEM fit if dofit is false.  This is for LLS studies
 if driver.oem.dofit
 
-  % Get the observed rate errors
+  % Get the observed rate errors, which ultimately are a combination of
+  %  (a) get_rates.m : driver.rateset.unc_rates = real(squeeze(b_err_obs(iibin,:,2))');
+  %  (b) nc_rates.m  : ncerrors = real(nc' .* driver.rateset.unc_rates); where nc is 1, or comes from a file
   ncerrors = nc_rates(driver);
 
   % xset are the apriori rates, in use units eg ppm/yr, K/yr
@@ -66,12 +68,16 @@ if driver.oem.dofit
   aux_stuff.ncerrors = ncerrors;
 
   % Do the OEM retrieval
-  [rodgers_rate,errorx,dofs,gain,kern,inds,Se_errors] = rodgers(driver,aux_stuff);
+  [rodgers_rate,errorx,dofs,gain,kern,inds,Se_errors,r,inv_se] = rodgers(driver,aux_stuff);
   driver.jacobian.chanset_used = inds;
 
   %% show the terms used in the Se error matrix
   driver.oem.spectral_errors     = Se_errors.ncerrors;
   driver.oem.forwardmodel_errors = Se_errors.fmerrors;
+  driver.oem.inv_Se              = inv_se;
+  
+  %% show the "r" matrix used for regularization
+  driver.oem.regularizationmatrix = r;
 
   % Build the output structure
   driver.oem.gain  = gain; 

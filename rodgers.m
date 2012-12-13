@@ -1,4 +1,4 @@
-function [rodgers_rate,errorx,dofs,gain,ak,inds,Se_errors] = rodgers(driver,aux_stuff)
+function [rodgers_rate,errorx,dofs,gain,ak,inds,Se_errors,r,inv_se] = rodgers(driver,aux_stuff)
 
 %---------------------------------------------------------------------------
 % OEM retrieval
@@ -64,9 +64,9 @@ se = e0 + fme;
 se = se.*se;
 
 % xb is the apriori
-[l1,l2] = size(xb);
+[zz1,zz2] = size(xb);
 % Linearization point = zero, assuming fits are linear
-xn = zeros(l1,l2);
+xn = zeros(zz1,zz2);
 
 % Form k matrix (Jacobians)
 k = m_ts_jac(inds,:);
@@ -83,8 +83,10 @@ deltan = driver.rateset.rates(inds) - fx(inds);
 inv_se = diag(1./diag(se));
 oo = find(isinf(inv_se) | isnan(inv_se)); inv_se(oo) = 0;
 
-% Apply regularization multiplier
+% Apply regularization multiplier 
 r = regularization_multiplier(r,driver);
+% override_cov_r       % do we want to couple SST and TS,TT or CO2 and TS,TT???
+% override_cov_rVERS2  % do we want to use COV from ERA?
 
 % Do the retrieval inversion
 dx1    = r + k' * inv_se * k; 
@@ -110,4 +112,3 @@ gain  = inv_r *k' * inv(k * inv_r * k' + se);
 % Compute averaging kernel
 ak = gain * k;   
 
-%keyboard
