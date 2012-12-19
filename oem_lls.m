@@ -68,13 +68,14 @@ if driver.oem.dofit
   aux_stuff.ncerrors = ncerrors;
 
   % Do the OEM retrieval
-  [rodgers_rate,errorx,dofs,gain,kern,inds,Se_errors,r,inv_se] = rodgers(driver,aux_stuff);
+  [rodgers_rate,errorx,dofs,gain,kern,inds,r,se,inv_se,se_errors] = rodgers(driver,aux_stuff);
   driver.jacobian.chanset_used = inds;
 
   %% show the terms used in the Se error matrix
-  driver.oem.spectral_errors     = Se_errors.ncerrors;
-  driver.oem.forwardmodel_errors = Se_errors.fmerrors;
-  driver.oem.inv_Se              = inv_se;
+  driver.oem.spectral_errors     = se_errors.ncerrors;
+  driver.oem.forwardmodel_errors = se_errors.fmerrors;
+  driver.oem.inv_se              = inv_se;
+  driver.oem.se                  = se;
   
   %% show the "r" matrix used for regularization
   driver.oem.regularizationmatrix = r;

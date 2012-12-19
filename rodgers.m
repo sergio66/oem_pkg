@@ -1,4 +1,4 @@
-function [rodgers_rate,errorx,dofs,gain,ak,inds,Se_errors,r,inv_se] = rodgers(driver,aux_stuff)
+function [rodgers_rate,errorx,dofs,gain,ak,inds,r,se,inv_se,se_errors] = rodgers(driver,aux_stuff)
 
 %---------------------------------------------------------------------------
 % OEM retrieval
@@ -8,16 +8,26 @@ function [rodgers_rate,errorx,dofs,gain,ak,inds,Se_errors,r,inv_se] = rodgers(dr
 %               retieval problems, Appl Optics, v41, pg 1788 (2002)
 %
 % jacobian           = k
-% obs error matrix   = se
-% param error matrix = r0,r
-% apriori            = xset
-% inital value       = xn
+%
+% obs error matrix   = se = 2378x2378
+% inverse of this    = diag(1./diag(se)) = inv_se = 2378x2378
+% se_errors          = uncertainties used in building up Se matrix (from obs and forward model)
+%                      se_errors.ncerrors = ncerrors;                                       2378x1
+%                      se_errors.fmerrors = ones(size(ncerrors)) * driver.oem.sarta_error;  2378x1
+%
+% param error matrix = r = 200x200; this starts out as being read in from a mat file (typically L0/L1)
+%                      and then gets manipulated through eg lambdas
+% apriori            = xset = 200x1
+% inital value       = xn   = 200x1
+% inds               = what channels used
+%
+% errorx             = proagated uncertainties in form of a matrix 200x200
+% rodgers_rate       = fitted rates afetr 1 iteration
 % final value        = xnp1 = xn + deltax
 % deg of freedom     = dofs
 % gain matrix        = gain
 % averaging kernel   = ak
-% inds               = what channels used
-% Se_errors          = uncertainties used in building up Se matrix (from obs and forward model)
+
 %---------------------------------------------------------------------------
 
 % Load and subset relaxation matrix
@@ -53,8 +63,8 @@ lenr = length(inds);
 fme  = ones(1,lenr)*driver.oem.sarta_error;
 fme  = diag(fme);          
 
-Se_errors.ncerrors = ncerrors;
-Se_errors.fmerrors = ones(size(ncerrors)) * driver.oem.sarta_error;
+se_errors.ncerrors = ncerrors;
+se_errors.fmerrors = ones(size(ncerrors)) * driver.oem.sarta_error;
 
 %% get 2378x2378 spectral cov matrix
 e0 = get_spectral_covariances(driver,ncerrors,inds);
@@ -79,7 +89,8 @@ for iy = 1 : length(xn)
 end
 deltan = driver.rateset.rates(inds) - fx(inds);
 
-% Do this once to save time, assume diagonal, no need for pinv
+% Do this once to save time, assume diagonal, no need for pinv   ORIG 2011
+% ???????????????
 inv_se = diag(1./diag(se));
 oo = find(isinf(inv_se) | isnan(inv_se)); inv_se(oo) = 0;
 
