@@ -89,10 +89,12 @@ for iy = 1 : length(xn)
 end
 deltan = driver.rateset.rates(inds) - fx(inds);
 
-% Do this once to save time, assume diagonal, no need for pinv   ORIG 2011
+% Do this once to save time, assume diagonal, no need for pinv   ORIG 201
 % ???????????????
-inv_se = diag(1./diag(se));
+%inv_se = diag(1./diag(se)); disp(' >>>>>>>> inv_se = diag(1./diag(se))');  %%% ORIG pre Dec 012
+inv_se = pinv(se);          disp(' <<<<<<<< inv_se = pinv(se)');           %%% NEW  post Dec 2012
 oo = find(isinf(inv_se) | isnan(inv_se)); inv_se(oo) = 0;
+% ???????????????
 
 % Apply regularization multiplier 
 r = regularization_multiplier(r,driver);
