@@ -10,6 +10,11 @@ Spectral Rates and Uncertainties
     adjust_values: [2.2000 0.0100 0.0100]
               max: 0.2500
               min: -0.2500
+          despike: 5
+
+--->> these two get added in AFTER the data is read in
+--->>             rates: [2378x1 single]
+--->>        unc_rates: [2378x1 double]
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 driver.ocb_set = 'obs' 'bias' or 'cal'
@@ -50,3 +55,7 @@ driver.rateset.max
 driver.rateset.min
   These variables are used to cutoff the rates read from driver.rateset.datafile 
  
+driver.rateset.despike
+  For AIRS, sometimes the "goodchannel" list or "users" list fails to get rid of all popping channel
+  If driver.rateset.despike > 0 then the code calls "despike2." to try and get rid of spikes
+  Note since these are spectra we look at, sometimes a legitimate point may be flagged as a spike and removed
