@@ -103,10 +103,11 @@ driver.jacobian.tempid  = goodind(itemp);
 
 %%%%
 % Need to avoid these normalizations if just doing LLS and no profile fits
-iDoRenorm = +1;   %% do the renorms
 iDoRenorm = -1;   %% skip the renorms
+%iDoRenorm = +1;   %% do the renorms
 qrenorm0 = qrenorm;
 if ((length(iQ1) > 1 | length(itemp) > 1)) & (iDoRenorm > 0)
+  disp('RENORM')
   do_the_renorm
 end
 driver.qrenorm  = qrenorm;

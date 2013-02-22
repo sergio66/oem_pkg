@@ -7,27 +7,31 @@ function [rodgers_rate,errorx,dofs,gain,ak,inds,r,se,inv_se,se_errors] = rodgers
 % Tilman Steck, Methods for determining regularization for atmospheric 
 %               retieval problems, Appl Optics, v41, pg 1788 (2002)
 %
-% jacobian           = k
+% some params used in the code
+%   jacobian           = k
+%   obs error matrix   = se = 2378x2378
+%   inverse of this    = diag(1./diag(se)) = inv_se = 2378x2378
+%   se_errors          = uncertainties used in building up Se matrix (from obs and forward model)
+%                        se_errors.ncerrors = ncerrors;                                       2378x1
+%                        se_errors.fmerrors = ones(size(ncerrors)) * driver.oem.sarta_error;  2378x1
 %
-% obs error matrix   = se = 2378x2378
-% inverse of this    = diag(1./diag(se)) = inv_se = 2378x2378
-% se_errors          = uncertainties used in building up Se matrix (from obs and forward model)
-%                      se_errors.ncerrors = ncerrors;                                       2378x1
-%                      se_errors.fmerrors = ones(size(ncerrors)) * driver.oem.sarta_error;  2378x1
+%   param error matrix = r = 200x200; this starts out as being read in from a mat file (typically L0/L1)
+%                        and then gets manipulated through eg lambdas
+%   apriori            = xset = 200x1
+%   inital value       = xn   = 200x1
 %
-% param error matrix = r = 200x200; this starts out as being read in from a mat file (typically L0/L1)
-%                      and then gets manipulated through eg lambdas
-% apriori            = xset = 200x1
-% inital value       = xn   = 200x1
-% inds               = what channels used
+% output
+%   errorx             = proagated uncertainties in form of a matrix 200x200
+%   rodgers_rate       = fitted rates afetr 1 iteration, xnp1 = xn + deltax
+%   deg of freedom     = dofs
+%   gain matrix        = gain
+%   averaging kernel   = ak
+%   inds               = actual channels used (maybe slightly different than what user specified, if code finds bad rates)
+%   r                  = actual relaxation matrix used for parameters (colgas,ST,WV(z),T(z) etc)
+%   se                 = actual channel covariance matrix used for spectral obs (1x2378 or 1x8461 or ... )
+%   inv_se             = actual channel inverse covariance matrix used
+%   se_errors          = actual channel uncertainties used
 %
-% errorx             = proagated uncertainties in form of a matrix 200x200
-% rodgers_rate       = fitted rates afetr 1 iteration
-% final value        = xnp1 = xn + deltax
-% deg of freedom     = dofs
-% gain matrix        = gain
-% averaging kernel   = ak
-
 %---------------------------------------------------------------------------
 
 % Load and subset relaxation matrix
@@ -36,19 +40,27 @@ r = r.cov(driver.jacindex,driver.jacindex);
 rInit = r;
 
 % Jacobians
-m_ts_jac = aux_stuff.m_ts_jac; [junkMM,junkNN] = size(m_ts_jac);
+m_ts_jac = aux_stuff.m_ts_jac; 
+[junkMM,junkNN] = size(m_ts_jac);
 
-%addpath /home/sergio/MATLABCODE
-%addpath /home/sergio/MATLABCODE/CLOUD
-if junkMM == 2378
-  fairs = instr_chans('airs');
-  gg    = dogoodchan;
-elseif junkMM == 8461
-  fairs = instr_chans('iasi');
-  gg    = 1:8461;
-else
+% addpath /home/sergio/MATLABCODE
+% addpath /home/sergio/MATLABCODE/CLOUD
+% this is only for checking sizes of the jacs, to see what "instrument" they correspond to
+if junkMM ~= 2378 & junkMM ~= 8461
   error('can only handle AIRS or IASI')
 end
+clear junkMM junkNN
+
+%if junkMM == 2378
+%  fairs = instr_chans('airs');
+%  gg    = dogoodchan;
+%elseif junkMM == 8461
+%  fairs = instr_chans('iasi');
+%  gg    = 1:8461;
+%else
+%  error('can only handle AIRS or IASI')
+%end
+%clear fairs gg
 
 % Index of frequencies used
 inds     = driver.jacobian.chanset;
@@ -91,7 +103,7 @@ deltan = driver.rateset.rates(inds) - fx(inds);
 
 % Do this once to save time, assume diagonal, no need for pinv   ORIG 201
 % ???????????????
-%inv_se = diag(1./diag(se)); disp(' >>>>>>>> inv_se = diag(1./diag(se))');  %%% ORIG pre Dec 012
+% inv_se = diag(1./diag(se)); disp(' >>>>>>>> inv_se = diag(1./diag(se))');  %%% ORIG pre Dec 012
 inv_se = pinv(se);          disp(' <<<<<<<< inv_se = pinv(se)');           %%% NEW  post Dec 2012
 oo = find(isinf(inv_se) | isnan(inv_se)); inv_se(oo) = 0;
 % ???????????????

@@ -3,15 +3,36 @@ function driver = oem_lls(driver,m_ts_jac);
 % Make sure obs are finite!
 inds = driver.jacobian.chanset;
 obs  = real(driver.rateset.rates(inds)); 
-inds = inds( isfinite(obs) );
+inds = inds(isfinite(obs));
 if length(inds) < length(driver.jacobian.chanset)
   disp('Some input rates have NaNs, now removed')
+  driver.jacobian.chanset = inds;
 end
+
+% Make sure obs lie between MIN and MAX
 obs  = real(driver.rateset.rates(inds)); 
 junk = find(obs < driver.rateset.max & obs > driver.rateset.min);
 inds = inds(junk);
 driver.jacobian.chanset = inds;
 clear obs junk
+
+% see if we can find a data spike
+if driver.rateset.despike > 0
+  junkFF = driver.f(inds);
+  junkA  = real(driver.rateset.rates(inds));
+  plot(0.5*(junkFF(1:end-1)+junkFF(2:end)),diff(junkA));
+  [junkC,idxC] = despike2(real(driver.rateset.rates(inds)),driver.rateset.despike);
+  if length(idxC) > 0
+    disp(['found ' num2str(length(idxC)) ' spikes, getting rid of them ...'])
+    indsX = setdiff(1:length(inds),idxC);
+    indsX = inds(indsX);
+  else
+    indsX = inds;
+  end
+  inds = indsX;
+  driver.jacobian.chanset = inds;
+  plot(junkFF,junkA,'bo-',driver.f(inds),real(driver.rateset.rates(inds)),'rx-');
+end
 
 [mm,nn] = size(m_ts_jac(inds,:));
 if (length(inds) < nn & driver.oem.dofit)
@@ -19,7 +40,6 @@ if (length(inds) < nn & driver.oem.dofit)
   fprintf(1,'  size jac mm,nn = %4i %4i\n',mm,nn);
   disp('Error: More jacobians than channels!')
 end
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% LLS

@@ -50,6 +50,9 @@ driver.jacobian.filename = 'M_TS_jac_all.mat';
 load goodchan.mat
 driver.jacobian.chanset = goodchan;   % 1500 channels
 
+% do we get rid of detected spikes ( <0 is NO, >0 is yes)
+driver.rateset.despike = -1;
+
 %---------------------------------------------------------------------------
 % Do one of [obs][cal][biases] 
 driver.rateset.ocb_set  = 'obs';

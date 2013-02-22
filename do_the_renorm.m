@@ -1,8 +1,7 @@
-   
-   % Don't need goodind(iwater), iwater will do..., etc.
+   % Don't need goodind(iQ1), iQ1 will do..., etc.
    % quick ugly fix when not retrieval water
-   if length(iwater) > 10
-     wsum = sum(jac(:,goodind(iwater)),2);
+   if length(iQ1) > 10
+     wsum = sum(jac(:,goodind(iQ1)),2);
    else
       wsum = 1;
    end
@@ -17,7 +16,7 @@
 
    % Pick temperature as the standard
    w_mult = tsum_max/wsum_max;
-   for i=1:ength(qstjacindex)
+   for i=1:length(qstjacindex)
       q_mult(i) = tsum_max/qsum_max(i);
    end
 
