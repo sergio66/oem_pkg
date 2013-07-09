@@ -27,7 +27,7 @@ function [rodgers_rate,errorx,dofs,gain,ak,inds,r,se,inv_se,se_errors] = rodgers
 %   deg of freedom     = dofs
 %   gain matrix        = gain
 %   averaging kernel   = ak
-%   inds               = actual channels used (maybe slightly different than what user specified, if code finds bad rates)
+%   inds               = actual channels used (could be different from user specified, if code finds bad rates)
 %   r                  = actual relaxation matrix used for parameters (colgas,ST,WV(z),T(z) etc)
 %   se                 = actual channel covariance matrix used for spectral obs (1x2378 or 1x8461 or ... )
 %   inv_se             = actual channel inverse covariance matrix used
@@ -85,9 +85,8 @@ k = m_ts_jac(inds,:);
 [mm,nn] = size(k);
 
 % Form y - F(xa)
-fx = run_klayers_sarta(driver,xn,rtpop,rtprp,0);
-keyboard
-deltan = driver.rateset.rates(inds) - fx(inds);
+tempx = run_klayers_sarta(driver,xn,rtpop,rtprp,0,-1);
+deltaY = driver.rateset.rates(inds) - tempx(inds);
 
 % Do this once to save time, assume diagonal, no need for pinv   ORIG 201
 % ???????????????
@@ -105,30 +104,32 @@ for ii = 1 : driver.oem.nloop
   % Do the retrieval inversion
   dx1    = r + k' * inv_se * k; 
   dx1    = pinv(dx1);    
-  dx2    = k' * inv_se * deltan - r*(xn-xb);
+
+  dx2    = k' * inv_se * deltaY - r*(xn-xb);
   deltax = dx1*dx2; 
 
   % Update first guess with deltax changes
   rodgers_rate = real(xn + deltax);  
+  xn = rodgers_rate;
 
   if ii < driver.oem.nloop
-    deltanIN = deltan;
-    xn = rodgers_rate;
+    deltaYIN = deltaY;
 
     % Form the computed rates; also see lines 108-121 of oem_lls.m
-    thefitr = zeros(1,length(driver.rateset.rates));
-    for ix = 1 : length(xn)
-      thefitr = thefitr + xn(ix)*m_ts_jac(:,ix)';
-    end
+    tempx = run_klayers_sarta(driver,xn,rtpop,rtprp,ii,-1);
+    %[tempx,jacnew] = run_klayers_sarta(driver,xn,rtpop,rtprp,ii,+1);
+    %jacnew = jacnew(inds,:);
+    %k = jacnew;
+ 
+    % Compute chisqr, and new deltaY
+    deltaY = driver.rateset.rates - tempx;
+    deltaY = deltaY(inds);
+    chisqr(ii) = sum(deltaY.*deltaY);
 
-    % Compute chisqr, and new deltan
-    deltan = thefitr - driver.rateset.rates';
-    deltan = deltan(:,inds)';
-    chisqr(ii) = sum(deltan'.*deltan');
-
-    clf
-    plot(1:length(deltan),deltanIN,1:length(deltan),deltan,'r'); 
-    title(num2str(ii)); pause
+    figure(2); clf
+    plot(1:length(deltaY),deltaYIN,1:length(deltaY),deltaY,'r'); 
+    plot(driver.f(inds),deltaYIN,driver.f(inds),deltaY,'r'); 
+    title(['obs - fit at iteration ' num2str(ii)]); pause(0.1)
   end
 
 end

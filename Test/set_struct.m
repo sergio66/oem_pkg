@@ -92,6 +92,18 @@ driver.sarta_error = 0.0;
 driver.oem.othergases = -1;   %% -1 means NO, +X means yes, X more gases
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% how many times are we looping
+driver.oem.nloop = 1;
+
+% are we doing rates (+1) or regular spectra (-1)
+driver.oem.rates = +1;
+% these are needed if doing regular spectra ie if driver.oem.rates = -1;
+  driver.oem.klayers = '/asl/packages/klayersV205/BinV201/klayers_airs';
+  driver.oem.sarta   = '/asl/packages/sartaV108_PGEv6/Bin/sarta_airs_PGEv6_postNov2003';
+  driver.oem.headstruct  = [];      %% this should be the starting head structure
+  driver.oem.profstruct  = [];      %% this should be the starting profile structure
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% NOTE THE DEFAULTS ARE FOR AIRS
 
 load airs_test_chanset.mat

@@ -16,6 +16,13 @@ inds = inds(junk);
 driver.jacobian.chanset = inds;
 clear obs junk
 
+% Make sure channel noise lies less than 2 K, new July 2013
+obs  = real(driver.rateset.rates(inds)); 
+junk = find(abs(driver.rateset.unc_rates(inds)) <= 1.0);
+inds = inds(junk);
+driver.jacobian.chanset = inds;
+clear obs junk
+
 % see if we can find a data spike
 if driver.rateset.despike > 0
   junkFF = driver.f(inds);
@@ -23,7 +30,7 @@ if driver.rateset.despike > 0
   plot(0.5*(junkFF(1:end-1)+junkFF(2:end)),diff(junkA));
   [junkC,idxC] = despike2(real(driver.rateset.rates(inds)),driver.rateset.despike);
   if length(idxC) > 0
-    disp(['found ' num2str(length(idxC)) ' spikes, getting rid of them ...'])
+    disp(['  <<<<<<< found ' num2str(length(idxC)) ' spikes, getting rid of them ...'])
     indsX = setdiff(1:length(inds),idxC);
     indsX = inds(indsX);
   else
@@ -88,7 +95,14 @@ if driver.oem.dofit
   aux_stuff.ncerrors = ncerrors;
 
   % Do the OEM retrieval
-  [rodgers_rate,errorx,dofs,gain,kern,inds,r,se,inv_se,se_errors] = rodgers(driver,aux_stuff);
+  if driver.oem.rates == +1;
+    %% do rates
+    [rodgers_rate,errorx,dofs,gain,kern,inds,r,se,inv_se,se_errors] = rodgers(driver,aux_stuff);
+  elseif driver.oem.rates == -1;
+    %% do regular spectra
+    [rodgers_rate,errorx,dofs,gain,kern,inds,r,se,inv_se,se_errors] = rodgers_spectra(driver,aux_stuff);
+  end
+
   driver.jacobian.chanset_used = inds;
 
   %% show the terms used in the Se error matrix

@@ -1,7 +1,7 @@
 function [rodgers_rate,errorx,dofs,gain,ak,inds,r,se,inv_se,se_errors] = rodgers(driver,aux_stuff)
 
 %---------------------------------------------------------------------------
-% OEM retrieval
+% OEM retrieval for RATES so y(x) = sum(rates(i) * jac(:,i)), to compare to yIN
 %---------------------------------------------------------------------------
 % Notation consistent with 
 % Tilman Steck, Methods for determining regularization for atmospheric 
@@ -34,33 +34,19 @@ function [rodgers_rate,errorx,dofs,gain,ak,inds,r,se,inv_se,se_errors] = rodgers
 %
 %---------------------------------------------------------------------------
 
-% Load and subset relaxation matrix
+% Load and subset relaxation matrix fpr PARAMETERS
 r = load(driver.oem.cov_filename,'cov');
 r = r.cov(driver.jacindex,driver.jacindex);
-rInit = r;
 
 % Jacobians
 m_ts_jac = aux_stuff.m_ts_jac; 
 [junkMM,junkNN] = size(m_ts_jac);
 
-% addpath /home/sergio/MATLABCODE
-% addpath /home/sergio/MATLABCODE/CLOUD
 % this is only for checking sizes of the jacs, to see what "instrument" they correspond to
 if junkMM ~= 2378 & junkMM ~= 8461
   error('can only handle AIRS or IASI')
 end
 clear junkMM junkNN
-
-%if junkMM == 2378
-%  fairs = instr_chans('airs');
-%  gg    = dogoodchan;
-%elseif junkMM == 8461
-%  fairs = instr_chans('iasi');
-%  gg    = 1:8461;
-%else
-%  error('can only handle AIRS or IASI')
-%end
-%clear fairs gg
 
 % Index of frequencies used
 inds     = driver.jacobian.chanset;
@@ -88,7 +74,11 @@ se = se.*se;
 % xb is the apriori
 [zz1,zz2] = size(xb);
 % Linearization point = zero, assuming fits are linear
-xn = zeros(zz1,zz2);
+% note by SSM on 7/4/2013
+%   this is a little odd, and makes the code less general purpose!!!!
+%   I'd prefer xn = xb!!! of course if xb = 0 this is moot
+xn = zeros(zz1,zz2);  %% orig, before July 2013
+xn = xb;              %% after July 2013
 
 % Form k matrix (Jacobians)
 k = m_ts_jac(inds,:);
@@ -113,14 +103,44 @@ r = regularization_multiplier(r,driver);
 % override_cov_r       % do we want to couple SST and TS,TT or CO2 and TS,TT???
 % override_cov_rVERS2  % do we want to use COV from ERA?
 
-% Do the retrieval inversion
-dx1    = r + k' * inv_se * k; 
-dx1    = pinv(dx1);    
-dx2    = k' * inv_se * deltan - r*(xn-xb);
-deltax = dx1*dx2; 
+for ii = 1 : driver.oem.nloop
+  % Do the retrieval inversion
+  dx1    = r + k' * inv_se * k; 
+  dx1    = pinv(dx1);    
+  dx2    = k' * inv_se * deltan - r*(xn-xb);
+  deltax = dx1*dx2; 
 
-% Update first guess with deltax changes
-rodgers_rate = real(xn + deltax)';  
+  % Update first guess with deltax changes
+  rodgers_rate = real(xn + deltax);  
+
+  if ii < driver.oem.nloop
+    deltanIN = deltan;
+    xn = rodgers_rate;
+
+    % Form the computed rates; also see lines 108-121 of oem_lls.m
+    thefitr = zeros(1,length(driver.rateset.rates));
+    for ix = 1 : length(xn)
+      thefitr = thefitr + xn(ix)*m_ts_jac(:,ix)';
+    end
+
+    % Compute chisqr, and new deltan
+    deltan = driver.rateset.rates' - thefitr;
+    deltan = deltan(:,inds)';
+    chisqr(ii) = sum(deltan'.*deltan');
+
+    clf
+    plot(1:length(deltan),deltanIN,1:length(deltan),deltan,'r'); 
+    title(['obs - fit at iteration ' num2str(ii)]); pause(0.1)
+  end
+
+end
+
+rodgers_rate = rodgers_rate';
+
+if driver.oem.nloop > 1
+  disp('printing out successive chisqr values (upto N-1 th iterate) ...')
+  chisqr
+end
 
 % Error analysis and diagnostics
 errorx = pinv(k' * inv_se * k + r);

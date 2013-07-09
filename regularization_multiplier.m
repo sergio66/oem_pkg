@@ -73,7 +73,7 @@ else
     end
   end
 
-  %% fine add it on for QST as well (Aug 2012)
+  %% add it on for QST as well (Aug 2012)
   n = length(driver.jacobian.qstYesOrNo);
   for i=1:n
     r(i,i) = r(i,i) + driver.oem.lambda;
