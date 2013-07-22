@@ -34,7 +34,7 @@ function [rodgers_rate,errorx,dofs,gain,ak,inds,r,se,inv_se,se_errors] = rodgers
 %   se_errors          = actual channel uncertainties used
 %
 %---------------------------------------------------------------------------
-
+addpath /asl/matlib/aslutil/
 rtpop = mktemp('junk.op.rtp');
 rtprp = mktemp('junk.rp.rtp');
 
@@ -57,6 +57,7 @@ inds     = driver.jacobian.chanset;
 
 % Apriori state
 xb       = aux_stuff.xb;
+
 % Observation errors : can adjust them with a scalar 
 ncerrors = aux_stuff.ncerrors * driver.oem.adjust_spectral_errorbars;
 
@@ -87,6 +88,9 @@ k = m_ts_jac(inds,:);
 % Form y - F(xa)
 tempx = run_klayers_sarta(driver,xn,rtpop,rtprp,0,-1);
 deltaY = driver.rateset.rates(inds) - tempx(inds);
+deltaY0 = deltaY;
+plot(1:length(deltaY),deltaY,1:length(deltaY),deltaY,'r');
+plot(driver.f(inds),deltaY,'r'); pause(0.1)
 
 % Do this once to save time, assume diagonal, no need for pinv   ORIG 201
 % ???????????????
@@ -112,7 +116,10 @@ for ii = 1 : driver.oem.nloop
   rodgers_rate = real(xn + deltax);  
   xn = rodgers_rate;
 
+  xsave(ii,:) = rodgers_rate;
+
   if ii < driver.oem.nloop
+    channel_errors = ncerrors(inds);
     deltaYIN = deltaY;
 
     % Form the computed rates; also see lines 108-121 of oem_lls.m
@@ -128,13 +135,15 @@ for ii = 1 : driver.oem.nloop
 
     figure(2); clf
     plot(1:length(deltaY),deltaYIN,1:length(deltaY),deltaY,'r'); 
-    plot(driver.f(inds),deltaYIN,driver.f(inds),deltaY,'r'); 
+    plot(driver.f(inds),deltaYIN,driver.f(inds),deltaY,'r',driver.f(inds),deltaY0,'g--',...
+         driver.f(inds),channel_errors,'k',driver.f(inds),-channel_errors,'k'); 
     title(['obs - fit at iteration ' num2str(ii)]); pause(0.1)
   end
 
 end
 
-rodgers_rate = rodgers_rate';
+best = find(chisqr ==  min(chisqr),1);
+rodgers_rate = xsave(best,:);
 
 if driver.oem.nloop > 1
   disp('printing out successive chisqr values (upto N-1 th iterate) ...')

@@ -87,7 +87,12 @@ if driver.oem.dofit
 
   % xset are the apriori rates, in use units eg ppm/yr, K/yr
   xb = load(driver.oem.apriori_filename,'apriori');
-  xb = xb.apriori(driver.jacindex)./driver.qrenorm';
+  xb = xb.apriori(driver.jacindex,:);
+  [mm,nn] = size(xb);
+  if nn > 1
+    xb = xb(:,driver.iibin);
+  end
+  xb = xb./driver.qrenorm';
 
   % Form structure needed by rodgers.m
   aux_stuff.m_ts_jac = m_ts_jac;

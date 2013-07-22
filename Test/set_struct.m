@@ -66,8 +66,9 @@ driver.rateset.adjust  = false;
 driver.rateset.adjust_index  = [1   103 200];
 driver.rateset.adjust_values = [2.2 0.01 0.01];  %% physical units
 
-driver.jacobian.numQlays   = 1;   %% have N lays of temp jacs; how many gases we want to retrieve profiles
-                                  %% must be at least 1 (which we assume is water, though not necessarily!)
+driver.jacobian.numQlays   = 1;    %% have N lays of temp jacs; how many gases we want to retrieve profiles
+                                   %% must be at least 1 (which we assume is water, though not necessarily!)
+driver.jacobian.gasID_Qlays = [1]; %% ID of gases whose profile you are retrieving [1] is minimum necessary
 driver.jacobian.numlays    = 97;
 
 % Choose QST variables to fit
@@ -88,9 +89,6 @@ driver.oem.diag_only = false;
 % SARTA forward model and other "representation" errors
 driver.sarta_error = 0.0; 
 
-% are we having another gas other than wv (eg HDO???)
-driver.oem.othergases = -1;   %% -1 means NO, +X means yes, X more gases
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % how many times are we looping
 driver.oem.nloop = 1;
@@ -100,6 +98,7 @@ driver.oem.rates = +1;
 % these are needed if doing regular spectra ie if driver.oem.rates = -1;
   driver.oem.klayers = '/asl/packages/klayersV205/BinV201/klayers_airs';
   driver.oem.sarta   = '/asl/packages/sartaV108_PGEv6/Bin/sarta_airs_PGEv6_postNov2003';
+  driver.oem.sarta   = '/asl/packages/sartaV108/Bin/sarta_apr08_m140_iceaggr_waterdrop_desertdust_slabcloud_hg3_wcon_nte';
   driver.oem.headstruct  = [];      %% this should be the starting head structure
   driver.oem.profstruct  = [];      %% this should be the starting profile structure
 

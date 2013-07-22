@@ -111,9 +111,12 @@ for ii = 1 : driver.oem.nloop
   deltax = dx1*dx2; 
 
   % Update first guess with deltax changes
-  rodgers_rate = real(xn + deltax);  
+  rodgers_rate = real(xn + deltax);
+  xn = rodgers_rate;
 
-  if ii < driver.oem.nloop
+  xsave(ii,:) = rodgers_rate;
+
+  if ii <= driver.oem.nloop
     deltanIN = deltan;
     xn = rodgers_rate;
 
@@ -135,7 +138,8 @@ for ii = 1 : driver.oem.nloop
 
 end
 
-rodgers_rate = rodgers_rate';
+best = find(chisqr ==  min(chisqr),1);
+rodgers_rate = xsave(best,:);
 
 if driver.oem.nloop > 1
   disp('printing out successive chisqr values (upto N-1 th iterate) ...')
