@@ -1,8 +1,20 @@
 OEM : how to set up Rodgers
 ---------------------------
+07/29/2013 : added Andy Tangborn's covariance matrix infp
+
+07/09/2013 : removed driver.oem.othergases
+    othergases     : -1 means you only have Q1(z) ; else you can have 
+                           Q2(z),Q3(z), ... QN(z) 
+                      [see vars_jacobian.txt : numQlays]
+
 
 driver.oem     
-
+                        nloop: 10
+                        rates: -1
+                      klayers: '/asl/packages/klayersV205/BinV201/klayers_airs'
+                        sarta: '/asl/packages/sartaV108_PGEv6/Bin/sarta_airs_PGEv6_postNov2003'
+                   headstruct: 'test_prof_headstruct.mat'
+                   profstruct: 'test_prof_profstruct.mat'
                         dofit: 1
                  cov_filename: 'cov_lls.mat'
          spectralcov_filename: '../MakeERA_ratespectra/cov_spectra_yy_2009_latbin_02.mat'
@@ -10,16 +22,21 @@ driver.oem
     adjust_spectral_errorbars: 1.0000e-03
                        lambda: 0.1000
                     diag_only: 0
-                   othergases: -1
                    lambda_qst: [1.0000e-03 1.0000e-03 1.0000e-03 1.0000e-03 1.0000e-03 1.0000e-03]
                     lambda_Q1: 0.1000
                   lambda_temp: 1.0000e-03
                   sarta_error: 0
+    regularizationVScovariances: 'C'
+                          sigma: [1x1 struct]
+
+    nloop          : default = 1; how many times you want to iterate the soln to cost fcn
+    rates          : default = -1 since code was designed for spectral rates
+                               +1 since may as well have code fit "regular" observed spectra
+    klayers/sarta  : if rates = +1, need to know which sarta/klayers executables to run
+    headstruct/profstruct : if rates = +1, need to have default [h,[],p,[]] to write to rtp files,
+                            so you can run sarta
 
     dofit          : 0 for only do linear least squares or (+1) LLS and OEM
-    othergases     : -1 means you only have Q1(z) ; else you can have 
-                           Q2(z),Q3(z), ... QN(z) 
-                      [see vars_jacobian.txt : numQlays]
 
     oem.sarta_error: one unique number (for all 2378 or 8642 chans) for SARTA 
                      ForwardModel error estimate used in rodgers.m
@@ -37,6 +54,31 @@ driver.oem
     apriori_filename : has "apriori" which is the 200x1 apriori estimates of the 
                        parameters to be fitted
 
+    regularizationVScovariances: 'R' or 'r' to use above regularization
+                               : 'C' or 'c' to use Andy Tangborns covariance, see sigma below
+   driver.oem.sigma contaiuns the GEOPHYSICAL std deviations to use
+     temp_strat_VALUE: 4
+    temp_strat_TOPLAY: 1
+    temp_strat_BOTLAY: 49
+
+      temp_trop_VALUE: 0.5000
+     temp_trop_TOPLAY: 50
+     temp_trop_BOTLAY: 97
+
+      hum_strat_VALUE: 1.5000
+     hum_strat_TOPLAY: 1
+     hum_strat_BOTLAY: 49
+
+       hum_trop_VALUE: 1
+      hum_trop_TOPLAY: 50
+      hum_trop_BOTLAY: 97
+
+                  l_c: 2.4000             = length correlation (in terms of LEVELS)
+
+                  qst: [4 1 4 1 1 1]      = for QST
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
 WOW
    lambda,diag_only,lambda_qst,lambda_Q1,lambda_temp 
    allow you to further manipulate "cov"

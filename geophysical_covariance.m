@@ -67,8 +67,8 @@ s_ap0    = s_ap;
 inv_sap0 = inv(s_ap0);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-iDebug = +1;
-if iDebug
+iDebug = -1;
+if iDebug > 0
   sigma_temp(1:49)=4;  % Stratophere
   sigma_temp(50:97)=.5; % Troposphere
   sigma_hum(1:49)=1.5;       % Stratosphere

@@ -16,7 +16,8 @@ inds = inds(junk);
 driver.jacobian.chanset = inds;
 clear obs junk
 
-% Make sure channel noise lies less than 2 K, new July 2013
+% Make sure channel noise levels are less than 2 K, new July 2013
+% (this is sometimes not satisfied at the 650-700 cm-1 AIRS channels)
 obs  = real(driver.rateset.rates(inds)); 
 junk = find(abs(driver.rateset.unc_rates(inds)) <= 1.0);
 inds = inds(junk);

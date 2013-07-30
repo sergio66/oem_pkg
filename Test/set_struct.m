@@ -117,16 +117,48 @@ driver.rateset.datafile = 'fitout_8year_v4_robust.mat';
 driver.rateset.ocb_set  = 'obs';
 driver.rateset.adjust   = 0;
 
-driver.oem.cov_filename     = 'cov_lls.mat';
-driver.oem.apriori_filename = 'apriori_zero';
-driver.oem.diag_only        = 0;
-driver.oem.lambda           = 1;
-%% >>>> orig
-%% driver.oem.lambda_gas       = 0.1;
-%% driver.oem.lambda_water     = 10;
-%% driver.oem.lambda_temp      = 1;
-%%% >>> new
-driver.oem.lambda_qst       = 0.1;
-driver.oem.lambda_Q1        = 10;
-driver.oem.lambda_temp      = 1;
+%% these are the geophysical covariances and/or smoothing params
+driver.oem.regularizationVScovariances = 'R';
+  %% this means set the SMOOTHING L1/L2 params
+  driver.oem.cov_filename     = 'cov_lls.mat';
+  driver.oem.apriori_filename = 'apriori_zero';
+  driver.oem.diag_only        = 0;
+  driver.oem.lambda           = 1;
+  driver.oem.lambda_qst       = 0.1;
+  driver.oem.lambda_Q1        = 10;
+  driver.oem.lambda_temp      = 1;
+
+  %% but if smoothVSregularization = 'c'
+  %% note these are PHYSICAL units eg sigma_temp_stratVALUE is in KELVIN (or KELVIN/YR)
+  %% so eg Andy Tangborn finds after normalization driver.oem.sigma.temp_strat_VALUE  = 4;
+  %% is a "good value" which means we default set it to 4*0.01 (0.01 is qrenorm for T(z))
+  %% strat temp
+    driver.oem.sigma.temp_strat_VALUE  = 4.0*0.01;       %% sigsqr
+    driver.oem.sigma.temp_strat_TOPLAY = 01;  %% start layer
+    driver.oem.sigma.temp_strat_BOTLAY = 49;  %% stop layer
+  %% trop temp
+    driver.oem.sigma.temp_trop_VALUE  = 0.5*0.01;       %% sigsqr
+    driver.oem.sigma.temp_trop_TOPLAY = 50;  %% start layer
+    driver.oem.sigma.temp_trop_BOTLAY = 97;  %% stop layer
+    driver.oem.sigma.temp_trop_TOPLAY = driver.oem.sigma.temp_strat_BOTLAY + 1; %% start layer
+    driver.oem.sigma.temp_trop_BOTLAY = driver.jacobian.numlays;                %% stop layer
+  %% strat GAS 1
+    driver.oem.sigma.hum_strat_VALUE  = 1.5*0.01;       %% sigsqr
+    driver.oem.sigma.hum_strat_TOPLAY = 01;  %% start layer
+    driver.oem.sigma.hum_strat_BOTLAY = 49;  %% stop layer
+  %% trop GAS 1
+    driver.oem.sigma.hum_trop_VALUE  = 1.0*0.01;       %% sigsqr
+    driver.oem.sigma.hum_trop_TOPLAY = 50;  %% start layer
+    driver.oem.sigma.hum_trop_BOTLAY = 97;  %% stop layer
+    driver.oem.sigma.hum_trop_TOPLAY = driver.oem.sigma.hum_strat_BOTLAY + 1; %% start layer
+    driver.oem.sigma.hum_trop_BOTLAY = driver.jacobian.numlays;                %% stop layer
+  %% length_correlation for T(z) and WV(z) .. note this is in terms of INDEX
+    driver.oem.sigma.l_c = 2.4;
+  %% QST 1 ..6 values
+    driver.oem.sigma.qst(1) = 4*2.20;  %% co2
+    driver.oem.sigma.qst(2) = 1*0.01;  %% o3
+    driver.oem.sigma.qst(3) = 4*1.00;  %% n2o
+    driver.oem.sigma.qst(4) = 1*5.00;  %% ch4 
+    driver.oem.sigma.qst(5) = 1*1.00;  %% cfc11
+    driver.oem.sigma.qst(6) = 1*0.10;  %% Stemp
 

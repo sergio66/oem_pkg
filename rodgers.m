@@ -15,8 +15,8 @@ function [rodgers_rate,errorx,dofs,gain,ak,inds,r,se,inv_se,se_errors] = rodgers
 %                        se_errors.ncerrors = ncerrors;                                       2378x1
 %                        se_errors.fmerrors = ones(size(ncerrors)) * driver.oem.sarta_error;  2378x1
 %
-%   param error matrix = r = 200x200; this starts out as being read in from a mat file (typically L0/L1)
-%                        and then gets manipulated through eg lambdas
+%   param error matrix = r = 200x200; this starts out as being read in from a mat file 
+%                        (typically L0/L1) and then gets manipulated through eg lambdas
 %   apriori            = xset = 200x1
 %   inital value       = xn   = 200x1
 %
@@ -26,9 +26,10 @@ function [rodgers_rate,errorx,dofs,gain,ak,inds,r,se,inv_se,se_errors] = rodgers
 %   deg of freedom     = dofs
 %   gain matrix        = gain
 %   averaging kernel   = ak
-%   inds               = actual channels used (maybe slightly different than what user specified, if code finds bad rates)
+%   inds               = actual channels used (maybe slightly different than what user specified, 
+%                        if code finds bad rates)
 %   r                  = actual relaxation matrix used for parameters (colgas,ST,WV(z),T(z) etc)
-%   se                 = actual channel covariance matrix used for spectral obs (1x2378 or 1x8461 or ... )
+%   se                 = actual channel covariance matrix used for spectral obs (eg 1x2378 or 1x8461)
 %   inv_se             = actual channel inverse covariance matrix used
 %   se_errors          = actual channel uncertainties used
 %
@@ -98,10 +99,19 @@ inv_se = pinv(se);          disp(' <<<<<<<< inv_se = pinv(se)');           %%% N
 oo = find(isinf(inv_se) | isnan(inv_se)); inv_se(oo) = 0;
 % ???????????????
 
-% Apply regularization multiplier 
-r = regularization_multiplier(r,driver);
-% override_cov_r       % do we want to couple SST and TS,TT or CO2 and TS,TT???
-% override_cov_rVERS2  % do we want to use COV from ERA?
+if driver.oem.regularizationVScovariances == 'R' | driver.oem.regularizationVScovariances == 'r'
+  % Apply (smoothing) regularization multiplier 
+  pm1 = r;
+  pm1 = r*r';  % AVT do we need this? This makes pm1 the square of r.
+  r = regularization_multiplier(pm1,driver);
+  % override_cov_r       % do we want to couple SST and TS,TT or CO2 and TS,TT???
+  % override_cov_rVERS2  % do we want to use COV from ERA?
+elseif driver.oem.regularizationVScovariances == 'C' | driver.oem.regularizationVScovariances == 'c'
+  % Apply covariance matrix, which has correlations
+  r = geophysical_covariance(driver);
+else
+  error('need driver.oem.regularizationVScovariances == r or R or c or C')
+end
 
 for ii = 1 : driver.oem.nloop
   % Do the retrieval inversion
