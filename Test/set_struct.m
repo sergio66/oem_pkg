@@ -117,7 +117,8 @@ driver.rateset.datafile = 'fitout_8year_v4_robust.mat';
 driver.rateset.ocb_set  = 'obs';
 driver.rateset.adjust   = 0;
 
->>>>>>
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% >>>>>>
 %% these are the geophysical covariances and/or smoothing params
 driver.oem.regularizationVScovariances = 'R';
   %% this means set the SMOOTHING L1/L2 params
@@ -129,6 +130,7 @@ driver.oem.regularizationVScovariances = 'R';
   driver.oem.lambda_Q1        = 10;
   driver.oem.lambda_temp      = 1;
 
+%% >>>>>>
 %% we've settled on geophysical covariance for clear sky rates
 driver.oem.regularizationVScovariances = 'C';
   %% but if smoothVSregularization = 'c'
