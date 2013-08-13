@@ -142,10 +142,15 @@ if driver.oem.dofit
   % Compute variance of fitted coefficients
   coeff_var = xb - coeffsr'; 
   coeff_var_qst = sum(coeff_var(driver.jacobian.iqst).^2);
-  for ii = 1 : driver.jacobian.numQlays
-    junk = ['coeff_var_Q' num2str(ii) ' = sum(coeff_var(driver.jacobian.iQ' num2str(ii) ').^2);']; eval(junk)
+  if driver.jacobian.numlays > 0 & driver.jacobian.numQlays > 0
+    for ii = 1 : driver.jacobian.numQlays
+      junk = ['coeff_var_Q' num2str(ii) ' = sum(coeff_var(driver.jacobian.iQ' num2str(ii) ').^2);']; 
+      eval(junk)
+    end
   end
-  coeff_var_temp = sum(coeff_var(driver.jacobian.itemp).^2);
+  if driver.jacobian.numlays > 0
+    coeff_var_temp = sum(coeff_var(driver.jacobian.itemp).^2);
+  end
 
   % More output
   driver.oem.coeffs          = coeffsr;
@@ -156,7 +161,9 @@ if driver.oem.dofit
   for ii = 1 : driver.jacobian.numQlays
     junk = ['driver.oem.coeff_var_Q' num2str(ii) '   = coeff_var_Q' num2str(ii) ';']; eval(junk)
   end
-  driver.oem.coeff_var_temp  = coeff_var_temp;
+  if driver.jacobian.numlays > 0
+    driver.oem.coeff_var_temp  = coeff_var_temp;
+  end
 
   if driver.jacobian.qstYesOrNo(1) == 1 & strfind(driver.jacobian.qstnames{1},'CO2')
     fprintf(1,'quick oem co2 estimate = %8.6f ppmv/yr \n',coeffsr(1)*driver.qrenorm(1))
