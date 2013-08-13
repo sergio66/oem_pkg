@@ -24,7 +24,11 @@ sigma_temp = zeros(1,driver.jacobian.numlays);
   L1 = driver.oem.sigma.temp_strat_TOPLAY;
   L2 = driver.oem.sigma.temp_strat_BOTLAY;
   sigma_temp(L1:L2) = driver.oem.sigma.temp_strat_VALUE;
-%% trop
+%% upper trop 
+  L1 = driver.oem.sigma.temp_upper_trop_TOPLAY; 
+  L2 = driver.oem.sigma.temp_upper_trop_BOTLAY; 
+  sigma_temp(L1:L2) = driver.oem.sigma.temp_upper_trop_VALUE; 
+%% lower trop is just trop  
   L1 = driver.oem.sigma.temp_trop_TOPLAY;
   L2 = driver.oem.sigma.temp_trop_BOTLAY;
   sigma_temp(L1:L2) = driver.oem.sigma.temp_trop_VALUE;
@@ -68,7 +72,7 @@ inv_sap0 = inv(s_ap0);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 iDebug = -1;
-if iDebug > 0
+if iDebug>0 
   sigma_temp(1:49)=4;  % Stratophere
   sigma_temp(50:97)=.5; % Troposphere
   sigma_hum(1:49)=1.5;       % Stratosphere
@@ -101,6 +105,5 @@ if iDebug > 0
   s_ap(5,5)=sigma_cfc11*sigma_cfc11;
   s_ap(6,6)=sigma_st*sigma_st;
   disp('keyboard in geophysical_covariance.m so you can check sap matrix')
-  keyboard
 end
 

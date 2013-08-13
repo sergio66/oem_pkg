@@ -117,9 +117,8 @@ driver.rateset.datafile = 'fitout_8year_v4_robust.mat';
 driver.rateset.ocb_set  = 'obs';
 driver.rateset.adjust   = 0;
 
->>>>>>
 %% these are the geophysical covariances and/or smoothing params
-driver.oem.regularizationVScovariances = 'R';
+driver.oem.regularizationVScovariances = 'C';
   %% this means set the SMOOTHING L1/L2 params
   driver.oem.cov_filename     = 'cov_lls.mat';
   driver.oem.apriori_filename = 'apriori_zero';
@@ -129,8 +128,6 @@ driver.oem.regularizationVScovariances = 'R';
   driver.oem.lambda_Q1        = 10;
   driver.oem.lambda_temp      = 1;
 
-%% we've settled on geophysical covariance for clear sky rates
-driver.oem.regularizationVScovariances = 'C';
   %% but if smoothVSregularization = 'c'
   %% note these are PHYSICAL units eg sigma_temp_stratVALUE is in KELVIN (or KELVIN/YR)
   %% so eg Andy Tangborn finds after normalization driver.oem.sigma.temp_strat_VALUE  = 4;
