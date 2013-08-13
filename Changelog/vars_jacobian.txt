@@ -1,10 +1,15 @@
 Setting up the Jacobian
 ------------------------
 
+*** Typically code assumes you are doing col gases, stemp and Q1(z),T(z) ***
+*** You can get the code to only do col gases, stemp by setting          ***
+***     numlays = 0, numQlays = 0                                        ***
+
 driver.jacobian 
       filename: 'M_TS_jac_all.mat'
        chanset: [1x1335 double]
       numQlays: 1
+   gasID_Qlays: 1 
        numlays: 97
       qstnames: {'CO2'  'O3'  'N2O'  'CH4'  'CFC11'  'stemp'}
     qstYesOrNo: [1 1 1 1 1 1]
@@ -12,23 +17,46 @@ driver.jacobian
      tjacindex: [1x97 double]
 
 filename
-  this MAT file contains the channel freqs, jacobians, as well as the normalizations used in making the jacobians
+  this MAT file contains the channel freqs, jacobians, as well as the 
+  normalizations used in making the jacobians
 
                f: [2378x1 double]
     M_TS_jac_all: [36x2378x200 double]
          qrenorm: [1x200 double]
 
             str1: {'CO2'  'O3'  'N2O'  'CFC11'  'ST'  'WV(97)'  'T(97)'}
-            str2: '[ [2.2 0.01 1.0 5 1 0.1] [0.01*ones(1,97)] [0.01*ones(1,97)]]'
+            str2: '[[2.2 0.01 1.0 5 1 0.1][0.01*ones(1,97)][0.01*ones(1,97)]]'
 
-chanset
-  which of the 2378 (or 8462) chans to use in the retrieval
+chanset     : which of the 2378 (or 8462) chans to use in the retrieval
 
-numlays  : when doing Q1(z),Q2(z), ..QN(z) and T(z), how many layers to expect
-numQlays : tells how many QN gases we have (must be at least 1 which is typically assumed to be WV)
-         : always assumes we have info for T(z)
+numlays     : when doing Q1(z),Q2(z), ..QN(z) and T(z), how many layers to 
+              expect
+        ** if numlays = 0, code is doing only COLUMN GAS/STEMP retrievals ***
+numQlays    : tells how many QN gases we have 
+        ** if numQlays == 0, then code is only doing COLGAS/STEMP and     ***
+        ** perhaps T(z) retrievals                                        ***
+        ** first gas is typically assumed to be Gas! == WV                ***
+gasID_Qlays : tells you which QN gases you want to change profiles for 
+           (this is really only needed if running off rodgers_spectra.m as you
+            need to update those profiles before running sarta). 
+
 Q1jacindex : indices to state which layers to use
 tjacindex  : indices to state which layers to use
 
 qstnames : what column jacs we have eg CO2, O3strat, O3trop, stemp, HDO
 qstYesOrNo : indices to state which of these gases to use
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Jacobian rules : 
+  for spectral rates, do what you want, together with qrenorm (eg have been 
+  working with CO2 jacobians normalized to 2.2 ppmv/yr, and N2o jacobians 
+  normalized to 1.0 ppb/yr
+
+  for spectral observations, 
+    for T(z), stemp and scanang : use (r(T+1)-r(T))/1
+    for column gases, and cloud params : use 
+       [r(X(1+delta))-r(X(1)]/log10(1+delta)
+    for layer gases QN(z) : use [r(Xn(1+delta))-r(Xn(1)]/log10(1+delta)
+    and qrenorm = 1 for all the geophysical params you are retrieving
+    See example : Test/perturb_49regr_profiles_spectraljacs.m

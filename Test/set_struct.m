@@ -141,12 +141,17 @@ driver.oem.regularizationVScovariances = 'C';
     driver.oem.sigma.temp_strat_VALUE  = 4.0*0.01;       %% sigsqr
     driver.oem.sigma.temp_strat_TOPLAY = 01;  %% start layer
     driver.oem.sigma.temp_strat_BOTLAY = 49;  %% stop layer
-  %% trop temp
+  %% upper trop temp
+    driver.oem.sigma.temp_upper_trop_VALUE  = 0.5*0.01;       %% sigsqr
+    driver.oem.sigma.temp_upper_trop_TOPLAY = 50;  %% start layer
+    driver.oem.sigma.temp_upper_trop_BOTLAY = 70;  %% stop layer
+    driver.oem.sigma.temp_upper_trop_TOPLAY = driver.oem.sigma.temp_strat_BOTLAY + 1; %% start
+  %% (lower) trop temp
     driver.oem.sigma.temp_trop_VALUE  = 0.5*0.01;       %% sigsqr
-    driver.oem.sigma.temp_trop_TOPLAY = 50;  %% start layer
+    driver.oem.sigma.temp_trop_TOPLAY = 71;  %% start layer
     driver.oem.sigma.temp_trop_BOTLAY = 97;  %% stop layer
-    driver.oem.sigma.temp_trop_TOPLAY = driver.oem.sigma.temp_strat_BOTLAY + 1; %% start layer
-    driver.oem.sigma.temp_trop_BOTLAY = driver.jacobian.numlays;                %% stop layer
+    driver.oem.sigma.temp_trop_TOPLAY = driver.oem.sigma.temp_upper_trop_BOTLAY + 1; %% start layer
+    driver.oem.sigma.temp_trop_BOTLAY = driver.jacobian.numlays;                     %% stop layer
   %% strat GAS 1
     driver.oem.sigma.hum_strat_VALUE  = 1.5*0.01;       %% sigsqr
     driver.oem.sigma.hum_strat_TOPLAY = 01;  %% start layer

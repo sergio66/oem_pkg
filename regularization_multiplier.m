@@ -45,13 +45,13 @@ else
   %%%%%%%%%%%%%%%%%%%% this is for T(z) ie the MULTICOLUMN temperature
   junkstr1 = driver.oem.lambda_temp;
   junkstr2 = driver.jacobian.itemp;
-  if length(driver.oem.lambda_temp) == 1
+  if length(driver.oem.lambda_temp) == 1 & driver.jacobian.numlays > 0
     %% multiply all R(i,j) of the T part of the matrix, by one number
     r(driver.jacobian.itemp,driver.jacobian.itemp)   = r(driver.jacobian.itemp,driver.jacobian.itemp) * driver.oem.lambda_temp;
-  elseif length(junkstr1) == length(junkstr2)
+  elseif length(junkstr1) == length(junkstr2) & driver.jacobian.numlays > 0
     %% multiply all R(i,i) of the T part of the matrix, .* specified diagnol, making this diagnol
     r(driver.jacobian.itemp,driver.jacobian.itemp)   = r(driver.jacobian.itemp,driver.jacobian.itemp) .* diag(driver.oem.lambda_temp);
-  elseif length(junkstr1) > length(junkstr2)
+  elseif length(junkstr1) > length(junkstr2) & driver.jacobian.numlays > 0
     %% multiply all R(i,j) of the iQ part of the matrix, by specified diagnol
     junk = junkstr1(1:length(junkstr2));
     junk = diag(junk);
@@ -62,14 +62,18 @@ else
   n = length(driver.jacobian.iQ1);
   m = length(driver.jacobian.itemp);
   ti = driver.jacobian.itemp;
-  for i=1:m
-    r(ti(i),ti(i)) = r(ti(i),ti(i)) + driver.oem.lambda;
+  if driver.jacobian.numlays > 0
+    for i=1:m
+      r(ti(i),ti(i)) = r(ti(i),ti(i)) + driver.oem.lambda;
+    end
   end
 
-  for ii = 1 : driver.jacobian.numQlays
-    junk = ['qi = driver.jacobian.iQ' num2str(ii) ';']; eval(junk);
-    for i=1:n
-      r(qi(i),qi(i)) = r(qi(i),qi(i)) + driver.oem.lambda;
+  if driver.jacobian.numlays > 0 & driver.jacobian.numQlays > 0
+    for ii = 1 : driver.jacobian.numQlays
+      junk = ['qi = driver.jacobian.iQ' num2str(ii) ';']; eval(junk);
+      for i=1:n
+        r(qi(i),qi(i)) = r(qi(i),qi(i)) + driver.oem.lambda;
+      end
     end
   end
 
