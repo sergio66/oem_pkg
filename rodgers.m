@@ -54,6 +54,11 @@ inds     = driver.jacobian.chanset;
 
 % Apriori state
 xb       = aux_stuff.xb;
+
+% override a priori
+
+override_xb
+
 % Observation errors : can adjust them with a scalar 
 ncerrors = aux_stuff.ncerrors * driver.oem.adjust_spectral_errorbars;
 
