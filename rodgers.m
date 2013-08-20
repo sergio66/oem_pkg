@@ -54,6 +54,15 @@ inds     = driver.jacobian.chanset;
 
 % Apriori state
 xb       = aux_stuff.xb;
+
+% override a priori; added by Andy on Aug 19, 2013
+if exist('override_xb','file')
+  junk = which('override_xb.m');
+  fprintf(1,'WARNING : using an override_xb.m file from %s \n',junk);
+  clear junk
+  override_xb
+end
+
 % Observation errors : can adjust them with a scalar 
 ncerrors = aux_stuff.ncerrors * driver.oem.adjust_spectral_errorbars;
 
