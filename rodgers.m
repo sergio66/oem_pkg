@@ -166,7 +166,7 @@ if driver.oem.nloop > 1
 end
 
 % Error analysis and diagnostics
-errorx = pinv(k' * inv_se * k + r);
+errorx = inv(k' * inv_se * k + r);    %% decided pinv is too unstable, Nov 2013, but not much difference
 dofsx  = errorx * r; 
 dofsx  = eye(size(dofsx)) - dofsx; 
 dofs   = trace(dofsx);
