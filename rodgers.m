@@ -1,5 +1,7 @@
 function [rodgers_rate,errorx,dofs,gain,ak,inds,r,se,inv_se,se_errors] = rodgers(driver,aux_stuff)
 
+
+addpath /home/strow/Git/breno_matlab/Math
 %---------------------------------------------------------------------------
 % OEM retrieval for RATES so y(x) = sum(rates(i) * jac(:,i)), to compare to yIN
 %---------------------------------------------------------------------------
@@ -118,7 +120,21 @@ if driver.oem.regularizationVScovariances == 'R' | driver.oem.regularizationVSco
 elseif driver.oem.regularizationVScovariances == 'C' | driver.oem.regularizationVScovariances == 'c'
   % Apply covariance matrix, which has correlations
   r = geophysical_covariance(driver);
-else
+  k1=1:6;k2=7:103;k3=104:200;
+  k2_trop_pause=50:63; 
+  k3_trop_pause=150:160;
+  k3_mid_trop=180:190; 
+  rinv=inv(r); 
+  rinv(k2_trop_pause,k2_trop_pause) = smoothn(rinv(k2_trop_pause,k2_trop_pause),10); 
+  rinv(k3_mid_trop,k3_mid_trop) = smoothn(rinv(k3_mid_trop,k3_mid_trop),10); 
+  rinv(k3_trop_pause,k3_trop_pause) = smoothn(rinv(k3_trop_pause,k3_trop_pause),10); 
+  rinv(k1,k1)=rinv(k1,k1); 
+  r=inv(rinv); 
+elseif driver.oem.regularizationVScovariances == 'ERA' | driver.oem.regularizationVScovariances =='era'
+  override_cov_rVERS2; 
+  r0=r; 
+  r=inv(r0); 
+else 
   error('need driver.oem.regularizationVScovariances == r or R or c or C')
 end
 
