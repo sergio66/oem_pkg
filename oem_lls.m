@@ -126,7 +126,7 @@ if driver.oem.dofit
   driver.oem.dofs  = dofs;
   
   coeffsr          = rodgers_rate;
-  coeffssigr       = diag(errorx)';
+  coeffssigr       = sqrt(diag(errorx)');    % AVT sigs should be square root of the covariance diagonal
 
   % Form the computed rates
   thefitr = zeros(1,length(driver.rateset.rates));
@@ -169,6 +169,30 @@ if driver.oem.dofit
     fprintf(1,'quick oem co2 estimate = %8.6f ppmv/yr \n',coeffsr(1)*driver.qrenorm(1))
   else
     disp('driver.jacobian.co2 = false or this is not CO2... not printing result!')
+  end
+
+  if driver.jacobian.qstYesOrNo(2) == 1 & strfind(driver.jacobian.qstnames{2},'O3')
+    fprintf(1,'quick oem o3 estimate = %8.6f ppmv/yr \n',coeffsr(2)*driver.qrenorm(2))
+  else
+    disp('driver.jacobian.o3 = false or this is not CO2... not printing result!')
+  end
+
+  if driver.jacobian.qstYesOrNo(3) == 1 & strfind(driver.jacobian.qstnames{3},'N2O')
+    fprintf(1,'quick oem n2o estimate = %8.6f ppmv/yr \n',coeffsr(3)*driver.qrenorm(3))
+  else
+    disp('driver.jacobian.n2o = false or this is not N2O... not printing result!')
+  end
+
+  if driver.jacobian.qstYesOrNo(4) == 1 & strfind(driver.jacobian.qstnames{4},'CH4')
+    fprintf(1,'quick oem ch4 estimate = %8.6f ppmv/yr \n',coeffsr(4)*driver.qrenorm(4))
+  else
+    disp('driver.jacobian.ch4 = false or this is not CH4... not printing result!')
+  end
+
+  if driver.jacobian.qstYesOrNo(5) == 1 & strfind(driver.jacobian.qstnames{5},'CFC11')
+    fprintf(1,'quick oem cfc11 estimate = %8.6f ppmv/yr \n',coeffsr(5)*driver.qrenorm(5))
+  else
+    disp('driver.jacobian.cfc11 = false or this is not CFC11... not printing result!')
   end
 
   junk = length(driver.jacobian.qstYesOrNo);

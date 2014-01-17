@@ -1,6 +1,5 @@
 function [rodgers_rate,errorx,dofs,gain,ak,inds,r,se,inv_se,se_errors] = rodgers(driver,aux_stuff)
 
-
 addpath /home/strow/Git/breno_matlab/Math
 %---------------------------------------------------------------------------
 % OEM retrieval for RATES so y(x) = sum(rates(i) * jac(:,i)), to compare to yIN
@@ -80,6 +79,7 @@ se_errors.fmerrors = ones(size(ncerrors)) * driver.oem.sarta_error;
 e0 = get_spectral_covariances(driver,ncerrors,inds);
 
 % Error correlation matrix of observations (diagonal)
+%fme(:,:)=0.1;  ! AVT test adding forward model error
 se = e0 + fme;  
 se = se.*se;
 
