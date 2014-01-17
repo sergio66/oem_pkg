@@ -1,4 +1,4 @@
-function [rodgers_rate,errorx,dofs,gain,ak,inds,r,se,inv_se,se_errors] = rodgers(driver,aux_stuff)
+function [rodgers_rate,errorx,dofs,cdofs,gain,ak,inds,r,se,inv_se,se_errors] = rodgers(driver,aux_stuff)
 
 %---------------------------------------------------------------------------
 % OEM retrieval for REGULAR SPECTRA so need klayers and sarta exec
@@ -25,6 +25,7 @@ function [rodgers_rate,errorx,dofs,gain,ak,inds,r,se,inv_se,se_errors] = rodgers
 %   errorx             = proagated uncertainties in form of a matrix 200x200
 %   rodgers_rate       = fitted rates afetr 1 iteration, xnp1 = xn + deltax
 %   deg of freedom     = dofs
+%   diag(deg freedom)  = cdofs
 %   gain matrix        = gain
 %   averaging kernel   = ak
 %   inds               = actual channels used (maybe slightly different than what user specified, 
@@ -165,6 +166,7 @@ errorx = pinv(k' * inv_se * k + r);
 dofsx  = errorx * r; 
 dofsx  = eye(size(dofsx)) - dofsx; 
 dofs   = trace(dofsx);
+cdofs  = diag(dofsx);
 
 % Gain is relative weight of first guess and observations
 inv_r = pinv(r);

@@ -1,4 +1,4 @@
-function [rodgers_rate,errorx,dofs,gain,ak,inds,r,se,inv_se,se_errors] = rodgers(driver,aux_stuff)
+function [rodgers_rate,errorx,dofs,cdofs,gain,ak,inds,r,se,inv_se,se_errors] = rodgers(driver,aux_stuff)
 
 addpath /home/strow/Git/breno_matlab/Math
 %---------------------------------------------------------------------------
@@ -25,6 +25,7 @@ addpath /home/strow/Git/breno_matlab/Math
 %   errorx             = proagated uncertainties in form of a matrix 200x200
 %   rodgers_rate       = fitted rates afetr 1 iteration, xnp1 = xn + deltax
 %   deg of freedom     = dofs
+%   diag(deg freedom)  = cdofs
 %   gain matrix        = gain
 %   averaging kernel   = ak
 %   inds               = actual channels used (maybe slightly different than what user specified, 
@@ -182,10 +183,11 @@ if driver.oem.nloop > 1
 end
 
 % Error analysis and diagnostics
-errorx = pinv(k' * inv_se * k + r);
+errorx = inv(k' * inv_se * k + r);    %% decided pinv is too unstable, Nov 2013, but not much difference
 dofsx  = errorx * r; 
 dofsx  = eye(size(dofsx)) - dofsx; 
 dofs   = trace(dofsx);
+cdofs  = diag(dofsx);                 %% so we can do cumulative d.of.f
 
 % Gain is relative weight of first guess and observations
 inv_r = pinv(r);

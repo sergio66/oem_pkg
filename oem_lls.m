@@ -103,10 +103,10 @@ if driver.oem.dofit
   % Do the OEM retrieval
   if driver.oem.rates == +1;
     %% do rates
-    [rodgers_rate,errorx,dofs,gain,kern,inds,r,se,inv_se,se_errors] = rodgers(driver,aux_stuff);
+    [rodgers_rate,errorx,dofs,cdofs,gain,kern,inds,r,se,inv_se,se_errors] = rodgers(driver,aux_stuff);
   elseif driver.oem.rates == -1;
     %% do regular spectra
-    [rodgers_rate,errorx,dofs,gain,kern,inds,r,se,inv_se,se_errors] = rodgers_spectra(driver,aux_stuff);
+    [rodgers_rate,errorx,dofs,cdofs,gain,kern,inds,r,se,inv_se,se_errors] = rodgers_spectra(driver,aux_stuff);
   end
 
   driver.jacobian.chanset_used = inds;
@@ -124,6 +124,7 @@ if driver.oem.dofit
   driver.oem.gain  = gain; 
   driver.oem.ak    = kern;
   driver.oem.dofs  = dofs;
+  driver.oem.cdofs = cdofs;
   
   coeffsr          = rodgers_rate;
   coeffssigr       = sqrt(diag(errorx)');    % AVT sigs should be square root of the covariance diagonal
