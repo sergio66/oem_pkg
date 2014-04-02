@@ -1,4 +1,4 @@
-function [rodgers_rate,errorx,dofs,cdofs,gain,ak,inds,r,se,inv_se,se_errors] = rodgers(driver,aux_stuff)
+function [rodgers_rate,errorx,dofs,cdofs,gain,ak,inds,r,se,inv_se,se_errors,ak_water,ak_temp] = rodgers(driver,aux_stuff)
 
 addpath /home/strow/Git/breno_matlab/Math
 %---------------------------------------------------------------------------
@@ -190,11 +190,21 @@ dofs   = trace(dofsx);
 cdofs  = diag(dofsx);                 %% so we can do cumulative d.of.f
 
 % Gain is relative weight of first guess and observations
+r_water=r(7:103,7:103); 
+r_temp=r(104:200,104:200); 
 inv_r = pinv(r);
+inv_r_water=pinv(r_water); 
+inv_r_temp=pinv(r_temp); 
 
 % inv operator seems OK for this matrix; if problems go back to pinv
+k_water=k(:,7:103); 
+k_temp=k(:,104:200); 
 gain  = inv_r *k' * inv(k * inv_r * k' + se);
+gain_water=inv_r_water*k_water'*inv(k_water*inv_r_water*k_water'+se); 
+gain_temp=inv_r_temp*k_temp'*inv(k_temp*inv_r_temp*k_temp'+se); 
 
 % Compute averaging kernel
 ak = gain * k;   
+ak_water=gain_water*k_water; 
+ak_temp=gain_temp*k_temp; 
 

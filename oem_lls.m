@@ -18,6 +18,7 @@ clear obs junk
 
 % Make sure channel noise levels are less than 2 K, new July 2013
 % (this is sometimes not satisfied at the 650-700 cm-1 AIRS channels)
+driver.rateset.rates=driver.rateset.rates; 
 obs  = real(driver.rateset.rates(inds)); 
 junk = find(abs(driver.rateset.unc_rates(inds)) <= 1.0);
 inds = inds(junk);
@@ -103,7 +104,7 @@ if driver.oem.dofit
   % Do the OEM retrieval
   if driver.oem.rates == +1;
     %% do rates
-    [rodgers_rate,errorx,dofs,cdofs,gain,kern,inds,r,se,inv_se,se_errors] = rodgers(driver,aux_stuff);
+    [rodgers_rate,errorx,dofs,cdofs,gain,kern,inds,r,se,inv_se,se_errors,kern_water,kern_temp] = rodgers(driver,aux_stuff);
   elseif driver.oem.rates == -1;
     %% do regular spectra
     [rodgers_rate,errorx,dofs,cdofs,gain,kern,inds,r,se,inv_se,se_errors] = rodgers_spectra(driver,aux_stuff);
@@ -125,6 +126,8 @@ if driver.oem.dofit
   driver.oem.ak    = kern;
   driver.oem.dofs  = dofs;
   driver.oem.cdofs = cdofs;
+  driver.oem.ak_water = kern_water; 
+  driver.oem.ak_temp = kern_temp; 
   
   coeffsr          = rodgers_rate;
   coeffssigr       = sqrt(diag(errorx)');    % AVT sigs should be square root of the covariance diagonal
