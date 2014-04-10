@@ -29,3 +29,12 @@ end
 driver.lls = rmfield(driver.lls,'coeffs');
 driver.lls = rmfield(driver.lls,'coeffssig');
 
+
+
+   fprintf(1,'co2 error = %8.6f  \n',2.2*driver.oem.finalsigs(1));
+   fprintf(1,'o3 error = %8.6f  \n',driver.oem.finalsigs(2)) ;
+   fprintf(1,'N2O error = %8.6f  \n',driver.oem.finalsigs(3)) ;
+   fprintf(1,'ch4 error = %8.6f  \n',driver.oem.finalsigs(4)); 
+   fprintf(1,'cfc11 error = %8.6f  \n',driver.oem.finalsigs(5)); 
+   fprintf(1,'sst error = %8.6f  \n', driver.oem.finalsigs(6)); 
+

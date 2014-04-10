@@ -36,8 +36,6 @@ if numlays > 0
     L1 = driver.oem.sigma.temp_upper_trop_TOPLAY;
     L2 = driver.oem.sigma.temp_upper_trop_BOTLAY;
     sigma_temp(L1:L2) = driver.oem.sigma.temp_upper_trop_VALUE;
-  %% lower trop is just trop
-    L1 = driver.oem.sigma.temp_trop_TOPLAY;
     L2 = driver.oem.sigma.temp_trop_BOTLAY;
     sigma_temp(L1:L2) = driver.oem.sigma.temp_trop_VALUE;
   daInd = 1 : driver.jacobian.numlays;                        %% eg 1:97
@@ -81,7 +79,6 @@ end
 
 s_ap0    = s_ap;
 inv_sap0 = inv(s_ap0);
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 iDebug = -1;
 if iDebug > 0
