@@ -182,3 +182,50 @@ gain  = inv_r *k' * inv(k * inv_r * k' + se);
 % Compute averaging kernel
 ak = gain * k;   
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% also want to do individual trace gas DOF and WV(z)/T(z) dof
+
+keyboard
+
+if length(driver.jacobian.iqst) > 0
+  xind = driver.jacobian.iqst;
+  xk = k(:,xind);
+  xr = r(xind,xind);
+  xerrorx = inv(xk' * inv_se * xk + xr);    %% decided pinv is too unstable, Nov 2013, but not much difference
+  xdofsx  = xerrorx * xr;
+  xdofsx  = eye(size(xdofsx)) - xdofsx;
+  xdofs   = trace(xdofsx);
+  xcdofs  = diag(xdofsx);                 %% so we can do cumulative d.of.f
+  cdofsQST = cumsum(xcdofs);
+else
+  cdofsQST = [];
+end
+
+if length(driver.jacobian.iQ1) > 0
+  xind = driver.jacobian.iQ1;
+  xk = k(:,xind);
+  xr = r(xind,xind);
+  xerrorx = inv(xk' * inv_se * xk + xr);    %% decided pinv is too unstable, Nov 2013, but not much difference
+  xdofsx  = xerrorx * xr;
+  xdofsx  = eye(size(xdofsx)) - xdofsx;
+  xdofs   = trace(xdofsx);
+  xcdofs  = diag(xdofsx);                 %% so we can do cumulative d.of.f
+  cdofsQ1 = cumsum(xcdofs);
+else
+  cdofsQ1 = [];
+end
+
+if length(driver.jacobian.itemp) > 0
+  xind = driver.jacobian.itemp;
+  xk = k(:,xind);
+  xr = r(xind,xind);
+  xerrorx = inv(xk' * inv_se * xk + xr);    %% decided pinv is too unstable, Nov 2013, but not much difference
+  xdofsx  = xerrorx * xr;
+  xdofsx  = eye(size(xdofsx)) - xdofsx;
+  xdofs   = trace(xdofsx);
+  xcdofs  = diag(xdofsx);                 %% so we can do cumulative d.of.f
+  cdofsT = cumsum(xcdofs);
+else
+  cdofsT = [];
+end
+
