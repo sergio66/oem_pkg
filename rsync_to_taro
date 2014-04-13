@@ -1,1 +1,0 @@
-cd ..;rsync -auv --delete --max-size=1000000 Fit_test/ taro:Work/Rates/Fit_pkg

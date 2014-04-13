@@ -58,10 +58,12 @@ lenr = length(inds);
 fme  = ones(1,lenr)*driver.oem.sarta_error;
 fme  = diag(fme);          
 
-se_errors.fmerrors = ones(size(aux.ncerrors)) * driver.oem.sarta_error;
+sizer = size(driver.rateset.rates);
+
+se_errors.fmerrors = ones(sizer) * driver.oem.sarta_error;
 
 %% get 2378x2378 spectral cov matrix
-e0 = diag(aux.ncerrors(inds));
+e0 = diag(driver.rateset.unc_rates(inds));
 
 %e0 = get_spectral_covariances(driver,aux.ncerrors,inds);
 

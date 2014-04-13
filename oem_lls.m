@@ -1,7 +1,6 @@
 function driver = oem_lls(driver,aux);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% LLS
+%LLS-------------------------------------------------------------------------
 [coeffs,coeffssig] = regress(driver.rateset.rates,aux.m_ts_jac);
 thefit = zeros(length(driver.rateset.rates),1);
 for ix = 1 : length(coeffs)
@@ -11,24 +10,20 @@ driver.lls.coeffs    = coeffs;
 driver.lls.coeffssig = coeffssig;
 driver.lls.fit       = thefit;
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% OEM
-
+%OEM--------------------------------------------------------------------------
 % Don't do OEM fit if dofit is false.  This is for LLS studies
 if driver.oem.dofit
 
   % Do the OEM retrieval
   [rodgers_rate,errorx,dofs,cdofs,gain,kern,r,se,inv_se,se_errors,kern_water,kern_temp] = rodgers(driver,aux);
 
-  driver.jacobian.chanset_used = driver.jacobian.chanset;
-
-  %% show the terms used in the Se error matrix
+  % Save terms used in the Se error matrix
   driver.oem.spectral_errors     = aux.ncerrors;
   driver.oem.forwardmodel_errors = se_errors.fmerrors;
   driver.oem.inv_se              = inv_se;
   driver.oem.se                  = se;
   
-  %% show the "r" matrix used for regularization
+  % Save actual r matrix
   driver.oem.regularizationmatrix = r;
 
   % Build the output structure
@@ -38,7 +33,6 @@ if driver.oem.dofit
   driver.oem.cdofs = cdofs;
   driver.oem.ak_water = kern_water; 
   driver.oem.ak_temp = kern_temp; 
-  
   coeffsr          = rodgers_rate;
   coeffssigr       = sqrt(diag(errorx)');    % AVT sigs should be square root of the covariance diagonal
 
@@ -54,6 +48,7 @@ if driver.oem.dofit
   fit_minus_obs = fit_minus_obs(:,inds);
   chisqrr = sum(fit_minus_obs'.*fit_minus_obs');
 
+% Sergio, do we need this?
 %   % Compute variance of fitted coefficients
 %   coeff_var = aux.xb - coeffsr'; 
 %   coeff_var_qst = sum(coeff_var(driver.jacobian.iqst).^2);
@@ -66,13 +61,13 @@ if driver.oem.dofit
 %   if driver.jacobian.numlays > 0
 %     coeff_var_temp = sum(coeff_var(driver.jacobian.itemp).^2);
 %   end
-
-  % More output
   driver.oem.coeffs          = coeffsr;
   driver.oem.coeffssig       = coeffssigr;
   driver.oem.fit             = thefitr;
   driver.oem.chisqr          = chisqrr;
+
+% Sergio: needed?  
 %   driver.oem.coeff_var_qst   = coeff_var_qst;
 %   driver.oem.coeff_var_temp  = coeff_var_temp;
 
-end % of do/don't do  OEM fit
+end % do oem fit
