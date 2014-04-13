@@ -1,11 +1,7 @@
-function driver = retrieval(driver,jac)
-
-% Subset jacs and qrenorm to variables being fit
-jac             = jac(:,driver.jacindex);
-driver.qrenorm  = driver.qrenorm(driver.jacindex);
+function driver = retrieval(driver,aux)
 
 % Do the retrievals
-driver = oem_lls(driver,jac);
+driver = oem_lls(driver,aux);
 
 % Translation to user units
 renormalize = driver.qrenorm';
@@ -28,8 +24,6 @@ end
 % Get rid of LLS un-normalized coefficients
 driver.lls = rmfield(driver.lls,'coeffs');
 driver.lls = rmfield(driver.lls,'coeffssig');
-
-
 
    fprintf(1,'co2 error = %8.6f  \n',2.2*driver.oem.finalsigs(1));
    fprintf(1,'o3 error = %8.6f  \n',driver.oem.finalsigs(2)) ;

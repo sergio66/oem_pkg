@@ -12,6 +12,11 @@ end
 
 if numQprofiles >= 1 & numlays >= 1
   %% definitely doing at least one gas(z) jacobian, as well as T(z) jacobian
+
+  disp('in get jacs')
+  
+  keyboard
+  
   [driver,jac] = gasNtemp_z_jac_setup(driver);
 elseif numQprofiles < 1 & numlays < 1
   %% doing col jacs

@@ -1,4 +1,4 @@
-function [rodgers_rate,errorx,dofs,cdofs,gain,ak,inds,r,se,inv_se,se_errors,ak_water,ak_temp] = rodgers(driver,aux_stuff)
+function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,ak_temp] = rodgers(driver,aux)
 
 addpath ~/Git/breno_matlab/Math
 %---------------------------------------------------------------------------
@@ -37,47 +37,33 @@ addpath ~/Git/breno_matlab/Math
 %
 %---------------------------------------------------------------------------
 
-% Load and subset relaxation matrix fpr PARAMETERS
-r = load(driver.oem.cov_filename,'cov');
-r = r.cov(driver.jacindex,driver.jacindex);
-
 % Jacobians
-m_ts_jac = aux_stuff.m_ts_jac; 
-[junkMM,junkNN] = size(m_ts_jac);
-
-% this is only for checking sizes of the jacs, to see what "instrument" they correspond to
-if junkMM ~= 2378 & junkMM ~= 8461
-  error('can only handle AIRS or IASI')
-end
-clear junkMM junkNN
+m_ts_jac = aux.m_ts_jac;
 
 % Index of frequencies used
 inds     = driver.jacobian.chanset;
 
-% Apriori state
-xb       = aux_stuff.xb;
-
-% override a priori; added by Andy on Aug 19, 2013
-if exist('override_xb','file')
-  junk = which('override_xb.m');
-  fprintf(1,'WARNING : using an override_xb.m file from %s \n',junk);
-  clear junk
-  override_xb
+[mm,nn] = size(m_ts_jac);
+if (length(inds) < nn & driver.oem.dofit)
+  fprintf(1,'  length(inds) = %4i \n',length(inds));
+  fprintf(1,'  size jac mm,nn = %4i %4i\n',mm,nn);
+  disp('Error: More jacobians than channels!')
 end
 
-% Observation errors : can adjust them with a scalar 
-ncerrors = aux_stuff.ncerrors * driver.oem.adjust_spectral_errorbars;
+% Apriori state
+xb       = aux.xb;
 
 % Covariance (uncertainties/correlations) of measurements
 lenr = length(inds);
 fme  = ones(1,lenr)*driver.oem.sarta_error;
 fme  = diag(fme);          
 
-se_errors.ncerrors = ncerrors;
-se_errors.fmerrors = ones(size(ncerrors)) * driver.oem.sarta_error;
+se_errors.fmerrors = ones(size(aux.ncerrors)) * driver.oem.sarta_error;
 
 %% get 2378x2378 spectral cov matrix
-e0 = get_spectral_covariances(driver,ncerrors,inds);
+e0 = diag(aux.ncerrors(inds));
+
+%e0 = get_spectral_covariances(driver,aux.ncerrors,inds);
 
 % Error correlation matrix of observations (diagonal)
 %fme(:,:)=0.1;  ! AVT test adding forward model error
