@@ -47,27 +47,9 @@ if driver.oem.dofit
   fit_minus_obs = thefitr - driver.rateset.rates'; 
   fit_minus_obs = fit_minus_obs(:,inds);
   chisqrr = sum(fit_minus_obs'.*fit_minus_obs');
-
-% Sergio, do we need this?
-%   % Compute variance of fitted coefficients
-%   coeff_var = aux.xb - coeffsr'; 
-%   coeff_var_qst = sum(coeff_var(driver.jacobian.iqst).^2);
-%   if driver.jacobian.numlays > 0 & driver.jacobian.numQlays > 0
-%     for ii = 1 : driver.jacobian.numQlays
-%       junk = ['coeff_var_Q' num2str(ii) ' = sum(coeff_var(driver.jacobian.iQ' num2str(ii) ').^2);']; 
-%       eval(junk)
-%     end
-%   end
-%   if driver.jacobian.numlays > 0
-%     coeff_var_temp = sum(coeff_var(driver.jacobian.itemp).^2);
-%   end
   driver.oem.coeffs          = coeffsr;
   driver.oem.coeffssig       = coeffssigr;
   driver.oem.fit             = thefitr;
   driver.oem.chisqr          = chisqrr;
-
-% Sergio: needed?  
-%   driver.oem.coeff_var_qst   = coeff_var_qst;
-%   driver.oem.coeff_var_temp  = coeff_var_temp;
 
 end % do oem fit

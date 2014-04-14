@@ -1,6 +1,4 @@
 function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,ak_temp] = rodgers(driver,aux)
-
-addpath ~/Git/breno_matlab/Math
 %---------------------------------------------------------------------------
 % OEM retrieval for RATES so y(x) = sum(rates(i) * jac(:,i)), to compare to yIN
 %---------------------------------------------------------------------------
@@ -59,16 +57,12 @@ fme  = ones(1,lenr)*driver.oem.sarta_error;
 fme  = diag(fme);          
 
 sizer = size(driver.rateset.rates);
-
 se_errors.fmerrors = ones(sizer) * driver.oem.sarta_error;
 
 %% get 2378x2378 spectral cov matrix
 e0 = diag(driver.rateset.unc_rates(inds));
 
-%e0 = get_spectral_covariances(driver,aux.ncerrors,inds);
-
 % Error correlation matrix of observations (diagonal)
-%fme(:,:)=0.1;  ! AVT test adding forward model error
 se = e0 + fme;  
 se = se.*se;
 
@@ -78,7 +72,7 @@ se = se.*se;
 % note by SSM on 7/4/2013
 %   this is a little odd, and makes the code less general purpose!!!!
 %   I'd prefer xn = xb!!! of course if xb = 0 this is moot
-xn = zeros(zz1,zz2);  %% orig, before July 2013
+% xn = zeros(zz1,zz2);  %% orig, before July 2013
 xn = xb;              %% after July 2013
 
 % Form k matrix (Jacobians)
@@ -93,43 +87,10 @@ end
 deltan = driver.rateset.rates(inds) - fx(inds);
 
 % Do this once to save time, assume diagonal, no need for pinv   ORIG 201
-% ???????????????
-% inv_se = diag(1./diag(se)); disp(' >>>>>>>> inv_se = diag(1./diag(se))');  %%% ORIG pre Dec 012
 inv_se = pinv(se);          disp(' <<<<<<<< inv_se = pinv(se)');           %%% NEW  post Dec 2012
 oo = find(isinf(inv_se) | isnan(inv_se)); inv_se(oo) = 0;
-% ???????????????
 
-if driver.oem.regularizationVScovariances == 'R' | driver.oem.regularizationVScovariances == 'r'
-  % Apply (smoothing) regularization multiplier 
-  pm1 = r;
-  pm1 = r*r';  % AVT do we need this? This makes pm1 the square of r.
-  r = regularization_multiplier(pm1,driver);
-  % override_cov_r       % do we want to couple SST and TS,TT or CO2 and TS,TT???
-  % override_cov_rVERS2  % do we want to use COV from ERA?
-elseif driver.oem.regularizationVScovariances == 'C' | driver.oem.regularizationVScovariances == 'c'
-  % Apply covariance matrix, which has correlations
-%  r = geophysical_covariance(driver);
-   r = blkdiag(driver.oem.fmat,driver.oem.wmat,driver.oem.tmat);
-   r = inv(r);
-% %   k1=1:6;k2=7:103;k3=104:200;
-% %   k2_trop_pause=50:63; 
-% %   k3_trop_pause=150:160;
-% %   k3_mid_trop=180:190; 
-% %   rinv=inv(r); 
-% %   rinv_orig = rinv;
-% %   rinv(k2_trop_pause,k2_trop_pause) = smoothn(rinv(k2_trop_pause,k2_trop_pause),10); 
-% %   rinv(k3_mid_trop,k3_mid_trop) = smoothn(rinv(k3_mid_trop,k3_mid_trop),10); 
-% %   rinv(k3_trop_pause,k3_trop_pause) = smoothn(rinv(k3_trop_pause,k3_trop_pause),10); 
-% %   rinv(k1,k1)=rinv(k1,k1); 
-% %   r=inv(rinv); 
-% %   keyboard
-elseif driver.oem.regularizationVScovariances == 'ERA' | driver.oem.regularizationVScovariances =='era'
-  override_cov_rVERS2; 
-  r0=r; 
-  r=inv(r0); 
-else 
-  error('need driver.oem.regularizationVScovariances == r or R or c or C')
-end
+r = inv(driver.oem.cov);
 
 for ii = 1 : driver.oem.nloop
   % Do the retrieval inversion
@@ -163,7 +124,6 @@ for ii = 1 : driver.oem.nloop
     plot(1:length(deltan),deltanIN,1:length(deltan),deltan,'r'); 
     title(['obs - fit at iteration ' num2str(ii)]); pause(0.1)
   end
-
 end
 
 best = find(chisqr ==  min(chisqr),1);
