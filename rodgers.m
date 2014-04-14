@@ -119,10 +119,12 @@ for ii = 1 : driver.oem.nloop
     deltan = driver.rateset.rates' - thefitr;
     deltan = deltan(:,inds)';
     chisqr(ii) = sum(deltan'.*deltan');
-
-    clf
-    plot(1:length(deltan),deltanIN,1:length(deltan),deltan,'r'); 
-    title(['obs - fit at iteration ' num2str(ii)]); pause(0.1)
+   
+    if driver.oem.doplots
+       clf
+       plot(1:length(deltan),deltanIN,1:length(deltan),deltan,'r'); 
+       title(['obs - fit at iteration ' num2str(ii)]); pause(0.1)
+   end
   end
 end
 

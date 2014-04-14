@@ -1,14 +1,17 @@
 function driver = oem_lls(driver,aux);
 
 %LLS-------------------------------------------------------------------------
-[coeffs,coeffssig] = regress(driver.rateset.rates,aux.m_ts_jac);
-thefit = zeros(length(driver.rateset.rates),1);
-for ix = 1 : length(coeffs)
-  thefit = thefit + coeffs(ix)*aux.m_ts_jac(:,ix);
+if driver.lls.dofit
+
+   [coeffs,coeffssig] = regress(driver.rateset.rates,aux.m_ts_jac);
+   thefit = zeros(length(driver.rateset.rates),1);
+   for ix = 1 : length(coeffs)
+      thefit = thefit + coeffs(ix)*aux.m_ts_jac(:,ix);
+   end
+   driver.lls.coeffs    = coeffs;
+   driver.lls.coeffssig = coeffssig;
+   driver.lls.fit       = thefit;
 end
-driver.lls.coeffs    = coeffs;
-driver.lls.coeffssig = coeffssig;
-driver.lls.fit       = thefit;
 
 %OEM--------------------------------------------------------------------------
 % Don't do OEM fit if dofit is false.  This is for LLS studies
@@ -18,14 +21,10 @@ if driver.oem.dofit
   [rodgers_rate,errorx,dofs,cdofs,gain,kern,r,se,inv_se,se_errors,kern_water,kern_temp] = rodgers(driver,aux);
 
   % Save terms used in the Se error matrix
-  driver.oem.spectral_errors     = driver.rateset.unc_rates;
   driver.oem.forwardmodel_errors = se_errors.fmerrors;
   driver.oem.inv_se              = inv_se;
   driver.oem.se                  = se;
   
-  % Save actual r matrix
-  driver.oem.regularizationmatrix = r;
-
   % Build the output structure
   driver.oem.gain  = gain; 
   driver.oem.ak    = kern;
@@ -38,7 +37,7 @@ if driver.oem.dofit
 
   % Form the computed rates
   thefitr = zeros(1,length(driver.rateset.rates));
-  for ix = 1 : length(coeffs)
+  for ix = 1 : length(coeffsr)
     thefitr = thefitr + coeffsr(ix)*aux.m_ts_jac(:,ix)';
   end
 
