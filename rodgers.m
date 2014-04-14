@@ -142,15 +142,15 @@ dofs   = trace(dofsx);
 cdofs  = diag(dofsx);                 %% so we can do cumulative d.of.f
 
 % Gain is relative weight of first guess and observations
-r_water=r(7:103,7:103); 
-r_temp=r(104:200,104:200); 
+r_water=r(driver.jacobian.water_i,driver.jacobian.water_i); 
+r_temp=r(driver.jacobian.temp_i,driver.jacobian.temp_i); 
 inv_r = pinv(r);
 inv_r_water=pinv(r_water); 
 inv_r_temp=pinv(r_temp); 
 
 % inv operator seems OK for this matrix; if problems go back to pinv
-k_water=k(:,7:103); 
-k_temp=k(:,104:200); 
+k_water=k(:,driver.jacobian.water_i); 
+k_temp=k(:,driver.jacobian.temp_i); 
 gain  = inv_r *k' * inv(k * inv_r * k' + se);
 gain_water=inv_r_water*k_water'*inv(k_water*inv_r_water*k_water'+se); 
 gain_temp=inv_r_temp*k_temp'*inv(k_temp*inv_r_temp*k_temp'+se); 
