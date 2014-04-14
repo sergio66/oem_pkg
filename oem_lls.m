@@ -18,7 +18,7 @@ if driver.oem.dofit
   [rodgers_rate,errorx,dofs,cdofs,gain,kern,r,se,inv_se,se_errors,kern_water,kern_temp] = rodgers(driver,aux);
 
   % Save terms used in the Se error matrix
-  driver.oem.spectral_errors     = aux.ncerrors;
+  driver.oem.spectral_errors     = driver.rateset.unc_rates;
   driver.oem.forwardmodel_errors = se_errors.fmerrors;
   driver.oem.inv_se              = inv_se;
   driver.oem.se                  = se;
