@@ -1,7 +1,12 @@
 function driver = retrieval(driver,aux)
 
+% Use sq2 = 2:200 when NOT fitting CO2.  This needs to be programmed into
+% driver.oem.
+%sq2 = 2:200;
+sq2 = 1:200;
+
 % Translation to user units
-renormalize = driver.qrenorm';
+renormalize = driver.qrenorm(sq2)';
 driver = oem_lls(driver,aux);
 
 % Do the LLS retrievals

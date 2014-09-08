@@ -61,6 +61,15 @@ se_errors.fmerrors = ones(sizer) * driver.oem.sarta_error;
 
 %% get 2378x2378 spectral cov matrix
 e0 = diag(driver.rateset.unc_rates(inds));
+for i=1:length(inds)
+   for j=1:length(inds)
+      if i~=j
+         e0(i,j) = 0.5*sqrt(e0(i,i))*sqrt(e0(j,j));
+      end
+   end
+end
+
+% keyboard
 
 % Error correlation matrix of observations (diagonal)
 se = e0 + fme;  
@@ -91,6 +100,11 @@ inv_se = pinv(se);          disp(' <<<<<<<< inv_se = pinv(se)');           %%% N
 oo = find(isinf(inv_se) | isnan(inv_se)); inv_se(oo) = 0;
 
 r = inv(driver.oem.cov);
+% Use following line for both cov and Tikhonov reg.
+% Need to input 1E2 and 1E1 alpha variables via driver.oem
+l = get_l(97,1);s = transpose(l)*l;rc = blkdiag(zeros(6,6),1E2*s,1E1*s);r = r + rc;
+% Use following line for only Tikhonov reg.
+%l = get_l(97,1);s = transpose(l)*l;rc = blkdiag(zeros(6,6),1E2*s,1E1*s);r =  rc;
 
 for ii = 1 : driver.oem.nloop
   % Do the retrieval inversion
@@ -99,7 +113,7 @@ for ii = 1 : driver.oem.nloop
   dx2    = k' * inv_se * deltan - r*(xn-xb);
   deltax = dx1*dx2; 
 
-  % Update first guess with deltax changes
+% Update first guess with deltax changes
   rodgers_rate = real(xn + deltax);
   xn = rodgers_rate;
 
