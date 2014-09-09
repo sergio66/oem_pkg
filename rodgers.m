@@ -102,9 +102,9 @@ oo = find(isinf(inv_se) | isnan(inv_se)); inv_se(oo) = 0;
 r = inv(driver.oem.cov);
 % Use following line for both cov and Tikhonov reg.
 % Need to input 1E2 and 1E1 alpha variables via driver.oem
-l = get_l(97,1);s = transpose(l)*l;rc = blkdiag(zeros(6,6),1E2*s,1E1*s);r = r + rc;
+%l = get_l(97,1);s = transpose(l)*l;rc = blkdiag(zeros(6,6),1E2*s,1E1*s);r = r + rc;
 % Use following line for only Tikhonov reg.
-%l = get_l(97,1);s = transpose(l)*l;rc = blkdiag(zeros(6,6),1E2*s,1E1*s);r =  rc;
+l = get_l(97,1);s = transpose(l)*l;rc = blkdiag(zeros(6,6),1E2*s,1E1*s);r =  rc;
 
 for ii = 1 : driver.oem.nloop
   % Do the retrieval inversion
