@@ -68,7 +68,7 @@ for i=1:length(inds)
       end
    end
 end
-
+% 
 % keyboard
 
 % Error correlation matrix of observations (diagonal)
@@ -104,7 +104,24 @@ r = inv(driver.oem.cov);
 % Need to input 1E2 and 1E1 alpha variables via driver.oem
 %l = get_l(97,1);s = transpose(l)*l;rc = blkdiag(zeros(6,6),1E2*s,1E1*s);r = r + rc;
 % Use following line for only Tikhonov reg.
-l = get_l(97,1);s = transpose(l)*l;rc = blkdiag(zeros(6,6),1E2*s,1E1*s);r =  rc;
+l = get_l(97,1);
+s = transpose(l)*l;
+rc = blkdiag(zeros(6,6),driver.oem.alpha_water*s,driver.oem.alpha_temp*s);
+
+driver.oem.cov_only = true;
+driver.oem.reg_only = true;
+driver.oem.reg_and_cov = true;
+
+switch driver.oem.reg_type
+  case 'reg_and_cov'
+    r = r + rc;
+  case 'reg'
+    r = rc;
+  case 'cov'
+    r = r;
+  otherwise
+    disp('Incorrect choice driver.oem.reg_type')
+end
 
 for ii = 1 : driver.oem.nloop
   % Do the retrieval inversion
