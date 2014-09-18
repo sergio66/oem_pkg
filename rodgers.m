@@ -108,10 +108,6 @@ l = get_l(97,1);
 s = transpose(l)*l;
 rc = blkdiag(zeros(6,6),driver.oem.alpha_water*s,driver.oem.alpha_temp*s);
 
-driver.oem.cov_only = true;
-driver.oem.reg_only = true;
-driver.oem.reg_and_cov = true;
-
 switch driver.oem.reg_type
   case 'reg_and_cov'
     r = r + rc;
