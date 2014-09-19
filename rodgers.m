@@ -61,13 +61,13 @@ se_errors.fmerrors = ones(sizer) * driver.oem.sarta_error;
 
 %% get 2378x2378 spectral cov matrix
 e0 = diag(driver.rateset.unc_rates(inds));
-for i=1:length(inds)
-   for j=1:length(inds)
-      if i~=j
-         e0(i,j) = 0.5*sqrt(e0(i,i))*sqrt(e0(j,j));
-      end
-   end
-end
+% for i=1:length(inds)
+%    for j=1:length(inds)
+%       if i~=j
+%          e0(i,j) = 0.5*sqrt(e0(i,i))*sqrt(e0(j,j));
+%       end
+%    end
+% end
 % 
 % keyboard
 
@@ -99,7 +99,7 @@ deltan = driver.rateset.rates(inds) - fx(inds);
 inv_se = pinv(se);          disp(' <<<<<<<< inv_se = pinv(se)');           %%% NEW  post Dec 2012
 oo = find(isinf(inv_se) | isnan(inv_se)); inv_se(oo) = 0;
 
-r = inv(driver.oem.cov);
+rcov = inv(driver.oem.cov);
 % Use following line for both cov and Tikhonov reg.
 % Need to input 1E2 and 1E1 alpha variables via driver.oem
 %l = get_l(97,1);s = transpose(l)*l;rc = blkdiag(zeros(6,6),1E2*s,1E1*s);r = r + rc;
@@ -110,11 +110,11 @@ rc = blkdiag(zeros(6,6),driver.oem.alpha_water*s,driver.oem.alpha_temp*s);
 
 switch driver.oem.reg_type
   case 'reg_and_cov'
-    r = r + rc;
+    r = rcov + rc;
   case 'reg'
     r = rc;
   case 'cov'
-    r = r;
+    r = rcov;
   otherwise
     disp('Incorrect choice driver.oem.reg_type')
 end
