@@ -106,7 +106,9 @@ rcov = inv(driver.oem.cov);
 % Use following line for only Tikhonov reg.
 l = get_l(97,1);
 s = transpose(l)*l;
-rc = blkdiag(zeros(6,6),driver.oem.alpha_water*s,driver.oem.alpha_temp*s);
+
+lenS = length(driver.jacobian.scalar_i);
+rc = blkdiag(zeros(lenS,lenS),driver.oem.alpha_water*s,driver.oem.alpha_temp*s);
 
 switch driver.oem.reg_type
   case 'reg_and_cov'
