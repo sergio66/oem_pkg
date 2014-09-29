@@ -3,7 +3,7 @@ function driver = retrieval(driver,aux)
 % Use sq2 = 2:200 when NOT fitting CO2.  This needs to be programmed into
 % driver.oem.
 %sq2 = 2:200;
-sq2 = 1:200;
+sq2 = 1:length(driver.jacobian.scalar_i) + length(driver.jacobian.water_i) + length(driver.jacobian.temp_i);
 
 % Translation to user units
 renormalize = driver.qrenorm(sq2)';
