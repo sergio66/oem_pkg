@@ -1,4 +1,4 @@
-function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,ak_temp] = rodgers(driver,aux)
+function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,ak_temp,ak_ozone] = rodgers(driver,aux)
 %---------------------------------------------------------------------------
 % OEM retrieval for RATES so y(x) = sum(rates(i) * jac(:,i)), to compare to yIN
 %---------------------------------------------------------------------------
@@ -68,8 +68,6 @@ e0 = diag(driver.rateset.unc_rates(inds));
 %       end
 %    end
 % end
-% 
-% keyboard
 
 % Error correlation matrix of observations (diagonal)
 se = e0 + fme;  
@@ -104,11 +102,15 @@ rcov = inv(driver.oem.cov);
 % Need to input 1E2 and 1E1 alpha variables via driver.oem
 %l = get_l(97,1);s = transpose(l)*l;rc = blkdiag(zeros(6,6),1E2*s,1E1*s);r = r + rc;
 % Use following line for only Tikhonov reg.
-l = get_l(97,1);
+l = get_l(driver.jacobian.numlays,1);
 s = transpose(l)*l;
 
 lenS = length(driver.jacobian.scalar_i);
+%% default : only column/stemp jacs, layer T, layer WV
 rc = blkdiag(zeros(lenS,lenS),driver.oem.alpha_water*s,driver.oem.alpha_temp*s);
+if isfield(driver.oem,'alpha_ozone')
+  rc = blkdiag(zeros(lenS,lenS),driver.oem.alpha_water*s,driver.oem.alpha_temp*s,driver.oem.alpha_ozone*s);
+end
 
 switch driver.oem.reg_type
   case 'reg_and_cov'
@@ -123,8 +125,8 @@ end
 
 for ii = 1 : driver.oem.nloop
   % Do the retrieval inversion
-  dx1    = r + k' * inv_se * k; 
-  dx1    = pinv(dx1);    
+  dx1    = r + k' * inv_se * k;
+  dx1    = pinv(dx1);
   dx2    = k' * inv_se * deltan - r*(xn-xb);
   deltax = dx1*dx2; 
 
@@ -147,7 +149,7 @@ for ii = 1 : driver.oem.nloop
     % Compute chisqr, and new deltan
     deltan = driver.rateset.rates' - thefitr;
     deltan = deltan(:,inds)';
-    chisqr(ii) = sum(deltan'.*deltan');
+    chisqr(ii) = nansum(deltan'.*deltan');
    
     if driver.oem.doplots
        clf
@@ -173,21 +175,30 @@ dofs   = trace(dofsx);
 cdofs  = diag(dofsx);                 %% so we can do cumulative d.of.f
 
 % Gain is relative weight of first guess and observations
-r_water=r(driver.jacobian.water_i,driver.jacobian.water_i); 
-r_temp=r(driver.jacobian.temp_i,driver.jacobian.temp_i); 
-inv_r = pinv(r);
-inv_r_water=pinv(r_water); 
-inv_r_temp=pinv(r_temp); 
+inv_r    = pinv(r);
+r_water  = r(driver.jacobian.water_i,driver.jacobian.water_i); 
+r_temp   = r(driver.jacobian.temp_i,driver.jacobian.temp_i); 
+inv_r_water = pinv(r_water); 
+inv_r_temp  = pinv(r_temp); 
 
 % inv operator seems OK for this matrix; if problems go back to pinv
-k_water=k(:,driver.jacobian.water_i); 
-k_temp=k(:,driver.jacobian.temp_i); 
-gain  = inv_r *k' * inv(k * inv_r * k' + se);
-gain_water=inv_r_water*k_water'*inv(k_water*inv_r_water*k_water'+se); 
-gain_temp=inv_r_temp*k_temp'*inv(k_temp*inv_r_temp*k_temp'+se); 
+gain       = inv_r *k' * inv(k * inv_r * k' + se);
+k_water    = k(:,driver.jacobian.water_i); 
+k_temp     = k(:,driver.jacobian.temp_i); 
+gain_water = inv_r_water*k_water'*inv(k_water*inv_r_water*k_water'+se); 
+gain_temp  =inv_r_temp*k_temp'*inv(k_temp*inv_r_temp*k_temp'+se); 
 
 % Compute averaging kernel
 ak = gain * k;   
-ak_water=gain_water*k_water; 
-ak_temp=gain_temp*k_temp; 
+ak_water = gain_water*k_water; 
+ak_temp  = gain_temp*k_temp; 
 
+if isfield(driver.oem,'alpha_ozone')
+  r_ozone  = r(driver.jacobian.ozone_i,driver.jacobian.ozone_i); 
+  inv_r_ozone = pinv(r_ozone);
+  k_ozone    = k(:,driver.jacobian.ozone_i);
+  gain_ozone = inv_r_ozone*k_ozone'*inv(k_ozone*inv_r_ozone*k_ozone'+se);   
+  ak_ozone = gain_ozone*k_ozone;
+else
+  ak_ozone = zeros(size(ak_water));
+end

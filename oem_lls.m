@@ -3,7 +3,8 @@ function driver = oem_lls(driver,aux);
 %LLS-------------------------------------------------------------------------
 if driver.lls.dofit
 
-   [coeffs,coeffssig] = regress(driver.rateset.rates,aux.m_ts_jac);
+   chanset = driver.jacobian.chanset;
+   [coeffs,coeffssig] = regress(driver.rateset.rates(chanset),aux.m_ts_jac(chanset,:));
    thefit = zeros(length(driver.rateset.rates),1);
    for ix = 1 : length(coeffs)
       thefit = thefit + coeffs(ix)*aux.m_ts_jac(:,ix);
@@ -18,7 +19,7 @@ end
 if driver.oem.dofit
 
   % Do the OEM retrieval
-  [rodgers_rate,errorx,dofs,cdofs,gain,kern,r,se,inv_se,se_errors,kern_water,kern_temp] = rodgers(driver,aux);
+  [rodgers_rate,errorx,dofs,cdofs,gain,kern,r,se,inv_se,se_errors,kern_water,kern_temp,kern_ozone] = rodgers(driver,aux);
 
   % Save terms used in the Se error matrix
   driver.oem.forwardmodel_errors = se_errors.fmerrors;
@@ -31,7 +32,8 @@ if driver.oem.dofit
   driver.oem.dofs  = dofs;
   driver.oem.cdofs = cdofs;
   driver.oem.ak_water = kern_water; 
-  driver.oem.ak_temp = kern_temp; 
+  driver.oem.ak_temp  = kern_temp;
+  driver.oem.ak_ozone = kern_ozone;   
   coeffsr          = rodgers_rate;
   coeffssigr       = sqrt(diag(errorx)');    % AVT sigs should be square root of the covariance diagonal
 
