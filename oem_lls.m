@@ -33,7 +33,8 @@ if driver.oem.dofit
   driver.oem.cdofs = cdofs;
   driver.oem.ak_water = kern_water; 
   driver.oem.ak_temp  = kern_temp;
-  driver.oem.ak_ozone = kern_ozone;   
+  driver.oem.ak_ozone = kern_ozone;
+  driver.oem.error_cov = errorx;
   coeffsr          = rodgers_rate;
   coeffssigr       = sqrt(diag(errorx)');    % AVT sigs should be square root of the covariance diagonal
 
