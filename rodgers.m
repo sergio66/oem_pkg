@@ -60,7 +60,8 @@ sizer = size(driver.rateset.rates);
 se_errors.fmerrors = ones(sizer) * driver.oem.sarta_error;
 
 %% get 2378x2378 spectral cov matrix
-e0 = diag(driver.rateset.unc_rates(inds));
+%e0 = diag(driver.rateset.unc_rates(inds));
+e0 = driver.rateset.unc_rates(inds,inds);
 % for i=1:length(inds)
 %    for j=1:length(inds)
 %       if i~=j
@@ -70,6 +71,8 @@ e0 = diag(driver.rateset.unc_rates(inds));
 % end
 
 % Error correlation matrix of observations (diagonal)
+%keyboard
+
 se = e0 + fme;  
 se = se.*se;
 
@@ -182,7 +185,7 @@ inv_r_water = pinv(r_water);
 inv_r_temp  = pinv(r_temp); 
 
 % inv operator seems OK for this matrix; if problems go back to pinv
-gain       = inv_r *k' * inv(k * inv_r * k' + se);
+gain       = inv_r *k' * pinv(k * inv_r * k' + se);
 k_water    = k(:,driver.jacobian.water_i); 
 k_temp     = k(:,driver.jacobian.temp_i); 
 gain_water = inv_r_water*k_water'*inv(k_water*inv_r_water*k_water'+se); 
