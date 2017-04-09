@@ -24,11 +24,20 @@ if driver.lls.dofit
 end
 
 if driver.oem.dofit
-% Renormalize OEM coefficients
-   driver.oem.finalrates = driver.oem.coeffs'.*renormalize;
-   driver.oem.finalsigs  = driver.oem.coeffssig'.*renormalize;
+  % Renormalize OEM coefficients
 
-   % Get rid of OEM un-normalized coefficients
-   driver.oem = rmfield(driver.oem,'coeffs');
-   driver.oem = rmfield(driver.oem,'coeffssig');
+  driver.oem.finalrates = driver.oem.coeffs'.*renormalize;
+  driver.oem.finalsigs  = driver.oem.coeffssig'.*renormalize;
+
+  % are all the jacobians (B(T+dT)-B(T))/dt or (B(Q(1+dQ))-B(Q))/log(1+dQ))
+  do_exp = [];
+  if isfield(aux,'linearVSexpJAC')
+    do_exp = find(aux.linearVSexpJAC == -1);
+    fprintf(1,'found %3i variables that were done with logs for jacs \n',length(do_exp));
+    driver.oem.finalrates(do_exp) = exp(driver.oem.finalrates(do_exp));  %% SCALE FACTOR by which you multiply Qo    
+  end
+
+  % Get rid of OEM un-normalized coefficients
+  driver.oem = rmfield(driver.oem,'coeffs');
+  driver.oem = rmfield(driver.oem,'coeffssig');
 end

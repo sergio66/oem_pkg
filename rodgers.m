@@ -34,7 +34,6 @@ function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,
 %   se_errors          = actual channel uncertainties used
 %
 %---------------------------------------------------------------------------
-
 % Jacobians
 m_ts_jac = aux.m_ts_jac;
 
@@ -60,8 +59,12 @@ sizer = size(driver.rateset.rates);
 se_errors.fmerrors = ones(sizer) * driver.oem.sarta_error;
 
 %% get 2378x2378 spectral cov matrix
-%e0 = diag(driver.rateset.unc_rates(inds));
-e0 = driver.rateset.unc_rates(inds,inds);
+wah = driver.rateset.unc_rates; [mgah,ngah] = size(wah);
+if mgah == 1 | ngah == 1
+  e0 = diag(driver.rateset.unc_rates(inds));
+else
+  e0 = driver.rateset.unc_rates(inds,inds);
+end;  
 % for i=1:length(inds)
 %    for j=1:length(inds)
 %       if i~=j
