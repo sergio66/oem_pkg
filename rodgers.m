@@ -78,6 +78,10 @@ end;
 
 se = e0 + fme;  
 se = se.*se;
+if isfield(aux,'all_obscov')
+  se = aux.all_obscov;
+  %se = se.*se;
+end
 
 % xb is the apriori
 [zz1,zz2] = size(xb);
@@ -94,6 +98,10 @@ k = m_ts_jac(inds,:);
 
 % Form y - F(xa)
 fx = zeros(size(driver.rateset.rates));
+%fprintf(1,'rateset at 445,449 before = %8.6f %8.6f \n',driver.rateset.rates(445),driver.rateset.rates(449));
+%fprintf(1,'co2 jac at 445,449        = %8.6f %8.6f \n',m_ts_jac(445,1),m_ts_jac(449,1));
+%fprintf(1,'co2 xb0, norm             = %8.6f %8.6f \n',xn(1),driver.qrenorm(1));
+%fprintf(1,'co2 unnorm jacat 445,449  = %8.6f %8.6f \n',m_ts_jac(445,1)*driver.qrenorm(1),m_ts_jac(449,1)*driver.qrenorm(1))
 for iy = 1 : length(xn)
    fx = fx + (xn(iy)*m_ts_jac(:,iy));
 end
