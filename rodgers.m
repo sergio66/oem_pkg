@@ -144,6 +144,15 @@ for ii = 1 : driver.oem.nloop
   dx2    = k' * inv_se * deltan - r*(xn-xb);
   deltax = dx1*dx2; 
 
+%{
+  figure(1); plot(1:length(deltan),k);
+  figure(2); pcolor(inv_se); shading flat; colorbar
+  figure(2); plot(1:length(deltan),1./sqrt(diag(inv_se)),'b',1:length(deltan),-1./sqrt(diag(inv_se)),'b',1:length(deltan),deltan,'r'); grid
+  figure(3); plot(dx2); title('dx2');
+  figure(4); plot(dx1*dx2); title('DX1 * dx2');
+  %error('lks')
+%}
+
 % Update first guess with deltax changes
   rodgers_rate = real(xn + deltax);
   xn = rodgers_rate;
@@ -182,7 +191,19 @@ if driver.oem.nloop > 1
 end
 
 % Error analysis and diagnostics
+
+AKstuff = (k' * inv_se * k + r);
+[L,U] = lu(AKstuff);
+
+%lala1 = diag(inv(AKstuff)*AKstuff);
+%lala2 = diag(pinv(AKstuff)*AKstuff);
+%lala3 = diag(inv(U)*inv(L) * AKstuff);
+%figure(5); plot(1:length(lala1),lala1,1:length(lala1),lala2,1:length(lala1),lala3); error('klfkf')
+
 errorx = pinv(k' * inv_se * k + r);    %% decided pinv is too unstable, Nov 2013, but not much difference
+errorx = inv(U)*inv(L);                %% trying LU
+errorx = inv(k' * inv_se * k + r);     %% decided pinv is too unstable, Aug 2018
+
 dofsx  = errorx * r; 
 dofsx  = eye(size(dofsx)) - dofsx; 
 dofs   = trace(dofsx);

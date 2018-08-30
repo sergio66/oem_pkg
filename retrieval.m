@@ -34,8 +34,8 @@ if driver.oem.dofit
   if isfield(aux,'linearVSexpJAC')
     do_exp = find(aux.linearVSexpJAC == -1);
     fprintf(1,'found %3i variables that were done with logarithms for jacs \n',length(do_exp));
-    driver.oem.finalrates(do_exp) = exp(driver.oem.finalrates(do_exp));  %% SCALE FACTOR by which you multiply Qo
-    driver.oem.finalsigs(do_exp)  = exp(driver.oem.finalsigs(do_exp));   %% SCALE FACTOR by which you multiply Qo        
+    driver.oem.finalrates(do_exp) = exp(driver.oem.finalrates(do_exp));      %% SCALE FACTOR by which you multiply Qo
+    driver.oem.finalsigs(do_exp)  = exp(driver.oem.finalsigs(do_exp)) - 1;   %% SCALE FACTOR by which you multiply Qo, Aug 2018 I included the -1
   end
   
   % Get rid of OEM un-normalized coefficients
