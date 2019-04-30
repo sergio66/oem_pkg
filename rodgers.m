@@ -1,4 +1,7 @@
 function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,ak_temp,ak_ozone] = rodgers(driver,aux)
+
+addpath /home/sergio/MATLABCODE/IntLab
+
 %---------------------------------------------------------------------------
 % OEM retrieval for RATES so y(x) = sum(rates(i) * jac(:,i)), to compare to yIN
 %---------------------------------------------------------------------------
@@ -40,11 +43,15 @@ m_ts_jac = aux.m_ts_jac;
 % Index of frequencies used
 inds     = driver.jacobian.chanset;
 
+invtype = 0;  %% inv
+invtype = 2;  %% invillco
+invtype = 1;  %% pinv   BEST
+
 [mm,nn] = size(m_ts_jac);
 if (length(inds) < nn & driver.oem.dofit)
   fprintf(1,'  length(inds) = %4i \n',length(inds));
   fprintf(1,'  size jac mm,nn = %4i %4i\n',mm,nn);
-  disp('Error: More jacobians than channels!')
+  disp('More jacobians than channels! will subset below')
 end
 
 % Apriori state
@@ -65,22 +72,35 @@ if mgah == 1 | ngah == 1
 else
   e0 = driver.rateset.unc_rates(inds,inds);
 end;  
-% for i=1:length(inds)
-%    for j=1:length(inds)
-%       if i~=j
-%          e0(i,j) = 0.5*sqrt(e0(i,i))*sqrt(e0(j,j));
-%       end
-%    end
-% end
 
 % Error correlation matrix of observations (diagonal)
-%keyboard
+if mgah == 1 | ngah == 1
+  i_e0_MatrOrArray = -1;     %% e0 = obs spectral uncertainty, is array
+else
+  i_e0_MatrOrArray = -1;     %% e0 = obs spectral uncertainty, is matrix
+end
 
-se = e0 + fme;  
-se = se.*se;
-if isfield(aux,'all_obscov')
-  se = aux.all_obscov;
-  %se = se.*se;
+if i_e0_MatrOrArray < 0
+  %% orig code
+  se = e0 + fme;  
+  se = se.*se;
+  if isfield(aux,'all_obscov')
+    %% this is in ../AIRS_new_random_scan_Aug2018/strow_override_defaults_latbins_AIRS.m
+    se = aux.all_obscov;
+  end
+elseif i_e0_MatrOrArray > 0
+  %% new code
+  fme = diag(fme);
+  fme = fme.*fme;
+  if mgah == 1 | ngah == 1
+    disp('  e0 = array ==> sent in an array of observational uncertainties')
+    e0 = diag(e0);   %% sent in an array of uncertainties
+    e0 = e0.*e0;
+  else 
+    disp('  e0 = matrix ==> sent in a matrix of observational uncertainties')
+    e0 = e0;  %% sent cov matrix of obs uncertainties
+  end
+    se = e0 + fme;
 end
 
 % xb is the apriori
@@ -98,27 +118,35 @@ k = m_ts_jac(inds,:);
 
 % Form y - F(xa)
 fx = zeros(size(driver.rateset.rates));
-%fprintf(1,'rateset at 445,449 before = %8.6f %8.6f \n',driver.rateset.rates(445),driver.rateset.rates(449));
-%fprintf(1,'co2 jac at 445,449        = %8.6f %8.6f \n',m_ts_jac(445,1),m_ts_jac(449,1));
-%fprintf(1,'co2 xb0, norm             = %8.6f %8.6f \n',xn(1),driver.qrenorm(1));
-%fprintf(1,'co2 unnorm jacat 445,449  = %8.6f %8.6f \n',m_ts_jac(445,1)*driver.qrenorm(1),m_ts_jac(449,1)*driver.qrenorm(1))
 for iy = 1 : length(xn)
    fx = fx + (xn(iy)*m_ts_jac(:,iy));
 end
 deltan = driver.rateset.rates(inds) - fx(inds);
 
 % Do this once to save time, assume diagonal, no need for pinv   ORIG 201
-inv_se = pinv(se);          disp(' <<<<<<<< inv_se = pinv(se)');           %%% NEW  post Dec 2012
+if invtype == 0
+  inv_se = inv(se);       disp(' <<<<<<<< inv_se = inv(se)');            %%% NEW  pre Dec 2012
+elseif invtype == 1
+  inv_se = pinv(se);      disp(' <<<<<<<< inv_se = pinv(se)');           %%% NEW  post Dec 2012
+elseif invtype == 2
+  inv_se = invillco(se);  disp(' <<<<<<<< inv_se = invillco(se)');       %%% NEW  post Apr 2019
+end
 oo = find(isinf(inv_se) | isnan(inv_se)); inv_se(oo) = 0;
 
-rcov = inv(driver.oem.cov);
-% Use following line for both cov and Tikhonov reg.
-% Need to input 1E2 and 1E1 alpha variables via driver.oem
-%l = get_l(97,1);s = transpose(l)*l;rc = blkdiag(zeros(6,6),1E2*s,1E1*s);r = r + rc;
-% Use following line for only Tikhonov reg.
-l = get_l(driver.jacobian.numlays,1);
+% driver.oem.cov needs to be inverted, since it is literally covariance; the tikonov matrices below ("s") need not be inverted
+if invtype == 0
+  rcov = inv(driver.oem.cov);
+elseif invtype == 1
+  rcov = pinv(driver.oem.cov);
+elseif invtype == 2
+  rcov = invillco(driver.oem.cov);
+end
+
+% Use following line for only Tikhonov reg THIS SHOULD NOT BE INVERTED
+l = get_l(driver.jacobian.numlays,1);    
 s = transpose(l)*l;
 
+%% now build the Tikhonov regularization block matrix, using "s"
 lenS = length(driver.jacobian.scalar_i);
 %% default : only column/stemp jacs, layer T, layer WV
 rc = blkdiag(zeros(lenS,lenS),driver.oem.alpha_water*s,driver.oem.alpha_temp*s);
@@ -137,10 +165,17 @@ switch driver.oem.reg_type
     disp('Incorrect choice driver.oem.reg_type')
 end
 
+whos r k inv_se
 for ii = 1 : driver.oem.nloop
   % Do the retrieval inversion
   dx1    = r + k' * inv_se * k;
-  dx1    = pinv(dx1);
+  if invtype == 0
+    dx1    = inv(dx1);
+  elseif invtype == 1
+    dx1    = pinv(dx1);
+  elseif invtype == 2
+    dx1    = invillco(dx1);
+  end
   dx2    = k' * inv_se * deltan - r*(xn-xb);
   deltax = dx1*dx2; 
 
@@ -192,17 +227,23 @@ end
 
 % Error analysis and diagnostics
 
-AKstuff = (k' * inv_se * k + r);
-[L,U] = lu(AKstuff);
-
 %lala1 = diag(inv(AKstuff)*AKstuff);
 %lala2 = diag(pinv(AKstuff)*AKstuff);
-%lala3 = diag(inv(U)*inv(L) * AKstuff);
+%lala3 = diag(invillco(AKstuff)*AKstuff);
+%lala4 = diag(inv(U)*inv(L) * AKstuff);
 %figure(5); plot(1:length(lala1),lala1,1:length(lala1),lala2,1:length(lala1),lala3); error('klfkf')
 
-errorx = pinv(k' * inv_se * k + r);    %% decided pinv is too unstable, Nov 2013, but not much difference
-errorx = inv(U)*inv(L);                %% trying LU
-errorx = inv(k' * inv_se * k + r);     %% decided pinv is too unstable, Aug 2018
+if invtype == 0
+  errorx = inv(k' * inv_se * k + r);     %% decided pinv is too unstable, Aug 2018
+elseif invtype == 1
+  errorx = pinv(k' * inv_se * k + r);    %% decided pinv is too unstable, Nov 2013, but not much difference
+elseif invtype == 2
+  errorx = invillco(k' * inv_se * k + r);%% decided pinv is too unstable, Nov 2013, but not much difference
+elseif invtype == 9999
+  AKstuff = (k' * inv_se * k + r);
+  [L,U] = lu(AKstuff);
+  errorx = inv(U)*inv(L);                %% trying LU
+end
 
 dofsx  = errorx * r; 
 dofsx  = eye(size(dofsx)) - dofsx; 
@@ -210,18 +251,38 @@ dofs   = trace(dofsx);
 cdofs  = diag(dofsx);                 %% so we can do cumulative d.of.f
 
 % Gain is relative weight of first guess and observations
-inv_r    = pinv(r);
 r_water  = r(driver.jacobian.water_i,driver.jacobian.water_i); 
 r_temp   = r(driver.jacobian.temp_i,driver.jacobian.temp_i); 
-inv_r_water = pinv(r_water); 
-inv_r_temp  = pinv(r_temp); 
+if invtype == 0
+  inv_r       = inv(r);
+  inv_r_water = inv(r_water); 
+  inv_r_temp  = inv(r_temp); 
+elseif invtype == 1
+  inv_r       = pinv(r);
+  inv_r_water = pinv(r_water); 
+  inv_r_temp  = pinv(r_temp); 
+elseif invtype == 2
+  inv_r       = invillco(r);
+  inv_r_water = invillco(r_water); 
+  inv_r_temp  = invillco(r_temp); 
+end
 
 % inv operator seems OK for this matrix; if problems go back to pinv
-gain       = inv_r *k' * pinv(k * inv_r * k' + se);
 k_water    = k(:,driver.jacobian.water_i); 
 k_temp     = k(:,driver.jacobian.temp_i); 
-gain_water = inv_r_water*k_water'*inv(k_water*inv_r_water*k_water'+se); 
-gain_temp  =inv_r_temp*k_temp'*inv(k_temp*inv_r_temp*k_temp'+se); 
+if invtype == 0
+  gain       = inv_r *k' * inv(k * inv_r * k' + se);
+  gain_water = inv_r_water*k_water'*inv(k_water*inv_r_water*k_water'+se); 
+  gain_temp  = inv_r_temp*k_temp'*inv(k_temp*inv_r_temp*k_temp'+se); 
+elseif invtype == 1
+  gain       = inv_r *k' * pinv(k * inv_r * k' + se);
+  gain_water = inv_r_water*k_water'*pinv(k_water*inv_r_water*k_water'+se); 
+  gain_temp  = inv_r_temp*k_temp'*pinv(k_temp*inv_r_temp*k_temp'+se); 
+elseif invtype == 2
+  gain       = inv_r *k' * invillco(k * inv_r * k' + se);
+  gain_water = inv_r_water*k_water'*invillco(k_water*inv_r_water*k_water'+se); 
+  gain_temp  = inv_r_temp*k_temp'*invillco(k_temp*inv_r_temp*k_temp'+se); 
+end
 
 % Compute averaging kernel
 ak = gain * k;   
@@ -230,8 +291,14 @@ ak_temp  = gain_temp*k_temp;
 
 if isfield(driver.oem,'alpha_ozone')
   r_ozone  = r(driver.jacobian.ozone_i,driver.jacobian.ozone_i); 
-  inv_r_ozone = pinv(r_ozone);
   k_ozone    = k(:,driver.jacobian.ozone_i);
+  if invtype == 0 
+    inv_r_ozone = inv(r_ozone);
+  elseif invtype == 1 
+    inv_r_ozone = pinv(r_ozone);
+  elseif invtype == 2
+    inv_r_ozone = invillco(r_ozone);
+  end
   gain_ozone = inv_r_ozone*k_ozone'*inv(k_ozone*inv_r_ozone*k_ozone'+se);   
   ak_ozone = gain_ozone*k_ozone;
 else
