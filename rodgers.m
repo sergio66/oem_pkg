@@ -165,7 +165,7 @@ switch driver.oem.reg_type
     disp('Incorrect choice driver.oem.reg_type')
 end
 
-whos r k inv_se
+%whos r k inv_se
 for ii = 1 : driver.oem.nloop
   % Do the retrieval inversion
   dx1    = r + k' * inv_se * k;
