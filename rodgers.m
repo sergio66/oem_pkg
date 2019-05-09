@@ -1,7 +1,5 @@
 function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,ak_temp,ak_ozone] = rodgers(driver,aux)
 
-addpath /home/sergio/MATLABCODE/IntLab
-
 %---------------------------------------------------------------------------
 % OEM retrieval for RATES so y(x) = sum(rates(i) * jac(:,i)), to compare to yIN
 %---------------------------------------------------------------------------
@@ -44,8 +42,24 @@ m_ts_jac = aux.m_ts_jac;
 inds     = driver.jacobian.chanset;
 
 invtype = 0;  %% inv
-invtype = 2;  %% invillco
-invtype = 1;  %% pinv   BEST
+invtype = 1;  %% pinv     BEST *****
+invtype = 2;  %% S. Rump      invillco   addpath /home/sergio/MATLABCODE/IntLab
+invtype = 3;  %% T. A. Davis  factorize  addpath /home/sergio/MATLABCODE/FactorizeMatrix/Factorize
+
+if ~isfield(aux,'invtype')
+  aux.invtype = 1;   %% default is to use pinv
+end
+invtype = aux.invtype;
+if invtype < 0 | invtype > 3
+  error('need invtype between 0 and 3')
+end
+fprintf(1,'inverse of matrices using method (0) inv (1) PINV (default) (2) invillco (3) factorize : %2i \n',invtype);
+
+if invtype == 2
+  addpath /home/sergio/MATLABCODE/IntLab
+elseif invtype == 3
+  addpath /home/sergio/MATLABCODE/FactorizeMatrix/Factorize
+end
 
 [mm,nn] = size(m_ts_jac);
 if (length(inds) < nn & driver.oem.dofit)
@@ -123,23 +137,44 @@ for iy = 1 : length(xn)
 end
 deltan = driver.rateset.rates(inds) - fx(inds);
 
+%{
+ inv_se = inv(se);      x0 = norm(eye(size(se)) - inv_se * se,'fro');
+ inv_se = pinv(se);     x1 = norm(eye(size(se)) - inv_se * se,'fro');
+ %inv_se = invillco(se); x2 = norm(eye(size(se)) - inv_se * se,'fro');
+ inv_se = inverse(se);  x3 = norm(eye(size(se)) - inv_se * se,'fro');
+ %fprintf(1,'norms = %8.6f %8.6f %8.6f %8.6f \n',[x0 x1 x2 x3]);
+ fprintf(1,'norms = %8.6f %8.6f %8.6f \n',[x0 x1    x3]);
+ error('kjsf')
+%}
+
 % Do this once to save time, assume diagonal, no need for pinv   ORIG 201
 if invtype == 0
-  inv_se = inv(se);       disp(' <<<<<<<< inv_se = inv(se)');            %%% NEW  pre Dec 2012
+  inv_se = inv(se);         disp(' <<<<<<<< inv_se = inv(se)');            %%% NEW  pre Dec 2012
 elseif invtype == 1
-  inv_se = pinv(se);      disp(' <<<<<<<< inv_se = pinv(se)');           %%% NEW  post Dec 2012
+  inv_se = pinv(se);        disp(' <<<<<<<< inv_se = pinv(se)');           %%% NEW  post Dec 2012
 elseif invtype == 2
-  inv_se = invillco(se);  disp(' <<<<<<<< inv_se = invillco(se)');       %%% NEW  post Apr 2019
+  inv_se = invillco(se);    disp(' <<<<<<<< inv_se = invillco(se)');       %%% NEW  post Apr 2019
+elseif invtype == 3
+  inv_seF = factorize(se);  disp(' <<<<<<<< inv_se = factorize(se)');     %%% NEW  post Apr 2019
+  inv_se = inverse(se);     disp(' <<<<<<<< inv_se = inverse(se)');       %%% NEW  post Apr 2019
+  inv_se = inv_se * eye(size(inv_se));
 end
-oo = find(isinf(inv_se) | isnan(inv_se)); inv_se(oo) = 0;
+%if invtype <= 2
+  oo = find(isinf(inv_se) | isnan(inv_se)); inv_se(oo) = 0;
+%end
 
-% driver.oem.cov needs to be inverted, since it is literally covariance; the tikonov matrices below ("s") need not be inverted
+% driver.oem.cov needs to be inverted, since it is literally covariance; 
+% the tikonov matrices below ("s") need not be inverted
 if invtype == 0
   rcov = inv(driver.oem.cov);
 elseif invtype == 1
   rcov = pinv(driver.oem.cov);
 elseif invtype == 2
   rcov = invillco(driver.oem.cov);
+elseif invtype == 3
+  rcovF = factorize(driver.oem.cov);
+  rcov  = inverse(driver.oem.cov);
+  rcov  = rcov * eye(size(rcov));
 end
 
 % Use following line for only Tikhonov reg THIS SHOULD NOT BE INVERTED
@@ -154,6 +189,7 @@ if isfield(driver.oem,'alpha_ozone')
   rc = blkdiag(zeros(lenS,lenS),driver.oem.alpha_water*s,driver.oem.alpha_temp*s,driver.oem.alpha_ozone*s);
 end
 
+% if invtype == 3, rcov could be a class rather than double
 switch driver.oem.reg_type
   case 'reg_and_cov'
     r = rcov + rc;
@@ -168,15 +204,30 @@ end
 %whos r k inv_se
 for ii = 1 : driver.oem.nloop
   % Do the retrieval inversion
-  dx1    = r + k' * inv_se * k;
-  if invtype == 0
-    dx1    = inv(dx1);
-  elseif invtype == 1
-    dx1    = pinv(dx1);
-  elseif invtype == 2
-    dx1    = invillco(dx1);
+  if invtype <= 2
+    dx1 = r + k' * inv_se * k;
+  elseif invtype == 3
+    dx1 = inv_seF\k;
+    dx1 = r + k'*dx1;
   end
-  dx2    = k' * inv_se * deltan - r*(xn-xb);
+
+  if invtype == 0
+    dx1  = inv(dx1);
+  elseif invtype == 1
+    dx1  = pinv(dx1);
+  elseif invtype == 2
+    dx1  = invillco(dx1);
+  elseif invtype == 3
+    dx1 = double(dx1);
+    dx1F = factorize(dx1);
+    dx1  = inverse(dx1);
+    dx1  = dx1 * eye(size(dx1));
+  end
+  if invtype <= 2
+    dx2 = k' * inv_se * deltan - r*(xn-xb);
+  elseif invtype == 3
+    dx2 = k'/inv_seF * deltan - r*(xn-xb);
+  end
   deltax = dx1*dx2; 
 
 %{
@@ -239,6 +290,10 @@ elseif invtype == 1
   errorx = pinv(k' * inv_se * k + r);    %% decided pinv is too unstable, Nov 2013, but not much difference
 elseif invtype == 2
   errorx = invillco(k' * inv_se * k + r);%% decided pinv is too unstable, Nov 2013, but not much difference
+elseif invtype == 3
+  errorx = double(k' * inv_se * k + r);  %% decided pinv is too unstable, May 2019, but not much difference
+  errorx = inverse(errorx);
+  errorx = errorx * eye(size(errorx));
 elseif invtype == 9999
   AKstuff = (k' * inv_se * k + r);
   [L,U] = lu(AKstuff);
@@ -265,6 +320,10 @@ elseif invtype == 2
   inv_r       = invillco(r);
   inv_r_water = invillco(r_water); 
   inv_r_temp  = invillco(r_temp); 
+elseif invtype == 3
+  inv_r       = inverse(r);
+  inv_r_water = inverse(r_water); 
+  inv_r_temp  = inverse(r_temp); 
 end
 
 % inv operator seems OK for this matrix; if problems go back to pinv
@@ -282,6 +341,10 @@ elseif invtype == 2
   gain       = inv_r *k' * invillco(k * inv_r * k' + se);
   gain_water = inv_r_water*k_water'*invillco(k_water*inv_r_water*k_water'+se); 
   gain_temp  = inv_r_temp*k_temp'*invillco(k_temp*inv_r_temp*k_temp'+se); 
+elseif invtype == 3
+  gain       = inv_r *k' * inverse(k * inv_r * k' + se);
+  gain_water = inv_r_water*k_water'*inverse(k_water*inv_r_water*k_water'+se); 
+  gain_temp  = inv_r_temp*k_temp'*inverse(k_temp*inv_r_temp*k_temp'+se); 
 end
 
 % Compute averaging kernel
@@ -298,6 +361,8 @@ if isfield(driver.oem,'alpha_ozone')
     inv_r_ozone = pinv(r_ozone);
   elseif invtype == 2
     inv_r_ozone = invillco(r_ozone);
+  elseif invtype == 3
+    inv_r_ozone = inverse(r_ozone);
   end
   gain_ozone = inv_r_ozone*k_ozone'*inv(k_ozone*inv_r_ozone*k_ozone'+se);   
   ak_ozone = gain_ozone*k_ozone;
