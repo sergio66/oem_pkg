@@ -45,15 +45,30 @@ invtype = 0;  %% inv
 invtype = 1;  %% pinv     BEST *****
 invtype = 2;  %% S. Rump      invillco   addpath /home/sergio/MATLABCODE/IntLab
 invtype = 3;  %% T. A. Davis  factorize  addpath /home/sergio/MATLABCODE/FactorizeMatrix/Factorize
+invtype = 4;  %% for Se do a ridge regression    Se --> Senew = Se + delta I
+invtype = 5;  %% for Se do a minimum eigenvalue  Se --> Senew = Se + blah (eig > minimum)
+
+% max condition number for invtype == 4
+kmax = 1000;  
+kmax = 10000;  
+kmax = 100000;  
+kmax = 1e4;  %% works pretty good  
+
+kmax = 1e1; 
+
+% min eigenvalue for invtype == 5
+sigmin = 1.0e-12;
+sigmin = 1.0e-10; %% works pretty good
+sigmin = 1.0e-16;
 
 if ~isfield(aux,'invtype')
   aux.invtype = 1;   %% default is to use pinv
 end
 invtype = aux.invtype;
-if invtype < 0 | invtype > 3
-  error('need invtype between 0 and 3')
+if invtype < 0 | invtype > 5
+  error('need invtype between 0 and 5')
 end
-fprintf(1,'inverse of matrices using method (0) inv (1) PINV (default) (2) invillco (3) factorize : %2i \n',invtype);
+fprintf(1,'inverse of matrices using method (0) inv (1) PINV (default) (2) invillco (3) factorize (4) Se RR (5) Se ME : %2i \n',invtype);
 
 if invtype == 2
   addpath /home/sergio/MATLABCODE/IntLab
@@ -149,15 +164,34 @@ deltan = driver.rateset.rates(inds) - fx(inds);
 
 % Do this once to save time, assume diagonal, no need for pinv   ORIG 201
 if invtype == 0
-  inv_se = inv(se);         disp(' <<<<<<<< inv_se = inv(se)');            %%% NEW  pre Dec 2012
+  disp(' <<<<<<<< inv_se = inv(se)');            %%% NEW  pre Dec 2012
+  inv_se = inv(se);         
 elseif invtype == 1
-  inv_se = pinv(se);        disp(' <<<<<<<< inv_se = pinv(se)');           %%% NEW  post Dec 2012
+  disp(' <<<<<<<< inv_se = pinv(se) DEFAULT');   %%% NEW  post Dec 2012
+  inv_se = pinv(se);        
 elseif invtype == 2
-  inv_se = invillco(se);    disp(' <<<<<<<< inv_se = invillco(se)');       %%% NEW  post Apr 2019
+  disp(' <<<<<<<< inv_se = invillco(se)');       %%% NEW  post Apr 2019
+  inv_se = invillco(se);    
 elseif invtype == 3
-  inv_seF = factorize(se);  disp(' <<<<<<<< inv_se = factorize(se)');     %%% NEW  post Apr 2019
-  inv_se = inverse(se);     disp(' <<<<<<<< inv_se = inverse(se)');       %%% NEW  post Apr 2019
+  disp(' <<<<<<<< inv_se = inverse(se)');        %%% NEW  post Apr 2019
+  inv_seF = factorize(se);  
+  inv_se = inverse(se);     
   inv_se = inv_se * eye(size(inv_se));
+elseif invtype == 4
+  disp(' <<<<<<<< inv_se = inverse_ridge_regression_matrix(se)');            %%% NEW  pre Dec 2012
+  inv_se = inverse_ridge_regression_matrix(se,kmax);   
+elseif invtype == 5
+  disp(' <<<<<<<< inv_se = inverse_minimum_eigenvalue_matrix(se)');            %%% NEW  pre Dec 2012
+  kmaxrange   = 2 : 1 : 12;   kmaxrange = 10.^kmaxrange;
+  sigminrange = -16 : 1 : -8; sigminrange = 10.^sigminrange;
+
+  kmaxrange   = 2 : 0.25 : 12;   kmaxrange = 10.^kmaxrange;
+  sigminrange = -16 : 0.25 : -8; sigminrange = 10.^sigminrange;
+
+  kmaxrange   = 2 : 0.25 : 12;   kmaxrange = 10.^kmaxrange;
+  sigminrange = -20 : 1 : -12; sigminrange = 10.^sigminrange;
+
+  inv_se = inverse_minimum_eigenvalue_matrix_optim(se,kmaxrange,sigminrange,'Se');   
 end
 %if invtype <= 2
   oo = find(isinf(inv_se) | isnan(inv_se)); inv_se(oo) = 0;
@@ -175,6 +209,10 @@ elseif invtype == 3
   rcovF = factorize(driver.oem.cov);
   rcov  = inverse(driver.oem.cov);
   rcov  = rcov * eye(size(rcov));
+elseif invtype == 4
+  rcov = inverse_ridge_regression_matrix(driver.oem.cov,kmax);
+elseif invtype == 5
+  rcov = inverse_minimum_eigenvalue_matrix_optim(driver.oem.cov,kmaxrange,sigminrange,'driver.oem.cov');
 end
 
 % Use following line for only Tikhonov reg THIS SHOULD NOT BE INVERTED
@@ -204,7 +242,7 @@ end
 %whos r k inv_se
 for ii = 1 : driver.oem.nloop
   % Do the retrieval inversion
-  if invtype <= 2
+  if invtype ~= 3
     dx1 = r + k' * inv_se * k;
   elseif invtype == 3
     dx1 = inv_seF\k;
@@ -222,8 +260,12 @@ for ii = 1 : driver.oem.nloop
     dx1F = factorize(dx1);
     dx1  = inverse(dx1);
     dx1  = dx1 * eye(size(dx1));
+  elseif invtype == 4
+    dx1  = inverse_ridge_regression_matrix(dx1,kmax);
+  elseif invtype == 5
+    dx1  = inverse_minimum_eigenvalue_matrix_optim(dx1,kmaxrange,sigminrange,'dx1');
   end
-  if invtype <= 2
+  if invtype ~= 3
     dx2 = k' * inv_se * deltan - r*(xn-xb);
   elseif invtype == 3
     dx2 = k'/inv_seF * deltan - r*(xn-xb);
@@ -294,6 +336,10 @@ elseif invtype == 3
   errorx = double(k' * inv_se * k + r);  %% decided pinv is too unstable, May 2019, but not much difference
   errorx = inverse(errorx);
   errorx = errorx * eye(size(errorx));
+elseif invtype == 4
+  errorx = inverse_ridge_regression_matrix(k' * inv_se * k + r,kmax);     %% decided pinv is too unstable, Aug 2018
+elseif invtype == 5
+  errorx = inverse_minimum_eigenvalue_matrix_optim(k' * inv_se * k + r,kmaxrange,sigminrange,'errorx');     %% decided pinv is too unstable, Aug 2018
 elseif invtype == 9999
   AKstuff = (k' * inv_se * k + r);
   [L,U] = lu(AKstuff);
@@ -324,6 +370,14 @@ elseif invtype == 3
   inv_r       = inverse(r);
   inv_r_water = inverse(r_water); 
   inv_r_temp  = inverse(r_temp); 
+elseif invtype == 4
+  inv_r       = inverse_ridge_regression_matrix(r,kmax);
+  inv_r_water = inverse_ridge_regression_matrix(r_water,kmax); 
+  inv_r_temp  = inverse_ridge_regression_matrix(r_temp,kmax); 
+elseif invtype == 5
+  inv_r       = inverse_minimum_eigenvalue_matrix_optim(r,kmaxrange,sigminrange,'inv_r');
+  inv_r_water = inverse_minimum_eigenvalue_matrix_optim(r_water,kmaxrange,sigminrange,'inv_r_water'); 
+  inv_r_temp  = inverse_minimum_eigenvalue_matrix_optim(r_temp,kmaxrange,sigminrange,'inv_r_temp'); 
 end
 
 % inv operator seems OK for this matrix; if problems go back to pinv
@@ -342,9 +396,20 @@ elseif invtype == 2
   gain_water = inv_r_water*k_water'*invillco(k_water*inv_r_water*k_water'+se); 
   gain_temp  = inv_r_temp*k_temp'*invillco(k_temp*inv_r_temp*k_temp'+se); 
 elseif invtype == 3
-  gain       = inv_r *k' * inverse(k * inv_r * k' + se);
-  gain_water = inv_r_water*k_water'*inverse(k_water*inv_r_water*k_water'+se); 
-  gain_temp  = inv_r_temp*k_temp'*inverse(k_temp*inv_r_temp*k_temp'+se); 
+  junk   = double(k * inv_r * k' + se);
+    gain = inv_r *k' * inverse(junk);
+  junk = double(k_water*inv_r_water*k_water'+se);
+    gain_water = inv_r_water*k_water'*inverse(junk);
+  junk = double(k_temp*inv_r_temp*k_temp'+se);
+    gain_temp  = inv_r_temp*k_temp'*inverse(junk);
+elseif invtype == 4
+  gain       = inv_r *k' * inverse_ridge_regression_matrix(k * inv_r * k' + se,kmax);
+  gain_water = inv_r_water*k_water'*inverse_ridge_regression_matrix(k_water*inv_r_water*k_water'+se,kmax); 
+  gain_temp  = inv_r_temp*k_temp'*inverse_ridge_regression_matrix(k_temp*inv_r_temp*k_temp'+se,kmax); 
+elseif invtype == 5
+  gain       = inv_r *k' * inverse_minimum_eigenvalue_matrix_optim(k * inv_r * k' + se,kmaxrange,sigminrange,'gain');
+  gain_water = inv_r_water*k_water'*inverse_minimum_eigenvalue_matrix_optim(k_water*inv_r_water*k_water'+se,kmaxrange,sigminrange,'gain_water'); 
+  gain_temp  = inv_r_temp*k_temp'*inverse_minimum_eigenvalue_matrix_optim(k_temp*inv_r_temp*k_temp'+se,kmaxrange,sigminrange,'gain_temp'); 
 end
 
 % Compute averaging kernel
@@ -357,15 +422,26 @@ if isfield(driver.oem,'alpha_ozone')
   k_ozone    = k(:,driver.jacobian.ozone_i);
   if invtype == 0 
     inv_r_ozone = inv(r_ozone);
+    gain_ozone = inv_r_ozone*k_ozone'*inv(k_ozone*inv_r_ozone*k_ozone'+se);
   elseif invtype == 1 
     inv_r_ozone = pinv(r_ozone);
+    gain_ozone = inv_r_ozone*k_ozone'*pinv(k_ozone*inv_r_ozone*k_ozone'+se);
   elseif invtype == 2
     inv_r_ozone = invillco(r_ozone);
+    gain_ozone = inv_r_ozone*k_ozone'*invillco(k_ozone*inv_r_ozone*k_ozone'+se);
   elseif invtype == 3
     inv_r_ozone = inverse(r_ozone);
+    gain_ozone = inv_r_ozone*k_ozone'*inverse(k_ozone*inv_r_ozone*k_ozone'+se);
+  elseif invtype == 4
+    inv_r_ozone = inverse_ridge_regression_matrix(r_ozone,kmax);
+    gain_ozone = inv_r_ozone*k_ozone'*inverse_ridge_regression_matrix(k_ozone*inv_r_ozone*k_ozone'+se,kmax);
+  elseif invtype == 5
+    inv_r_ozone = inverse_minimum_eigenvalue_matrix_optim(r_ozone,kmaxrange,sigminrange,'inv_r_ozone');
+    gain_ozone = inv_r_ozone*k_ozone'*inverse_minimum_eigenvalue_matrix_optim(k_ozone*inv_r_ozone*k_ozone'+se,kmaxrange,sigminrange,'gain_ozone');
   end
-  gain_ozone = inv_r_ozone*k_ozone'*inv(k_ozone*inv_r_ozone*k_ozone'+se);   
   ak_ozone = gain_ozone*k_ozone;
 else
   ak_ozone = zeros(size(ak_water));
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
