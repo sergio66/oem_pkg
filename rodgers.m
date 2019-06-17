@@ -146,15 +146,25 @@ xnIN = xn;
 k = m_ts_jac(inds,:);
 [mm,nn] = size(k);
 
-% Form y - F(xa)
-fx = zeros(size(driver.rateset.rates));
-for iy = 1 : length(xn)
-   fx = fx + (xn(iy)*m_ts_jac(:,iy));
+iAddXB = -1; %% new, makes more sense
+iAddXB = +1; %% orig, wierd 
+if iAddXB > 0
+  % Form y - F(xa), this is orig code but a little wierd!!!!!!
+  fx = zeros(size(driver.rateset.rates));
+  for iy = 1 : length(xn)
+     fx = fx + (xn(iy)*m_ts_jac(:,iy));
+  end
+  fx00 = fx;
+  deltan00 = driver.rateset.rates - fx00;           %%% << this is what we are fitting >>
+  deltan = driver.rateset.rates(inds) - fx(inds);   %%% << this is what we are fitting >>
+  deltan0 = deltan;
+else
+  fx = zeros(size(driver.rateset.rates));
+  fx00 = fx;
+  deltan00 = driver.rateset.rates - fx00;           %%% << this is what we are fitting >>
+  deltan = driver.rateset.rates(inds) - fx(inds);   %%% << this is what we are fitting >>
+  deltan0 = deltan;
 end
-fx00 = fx;
-deltan00 = driver.rateset.rates - fx00;           %%% << this is what we are fitting >>
-deltan = driver.rateset.rates(inds) - fx(inds);   %%% << this is what we are fitting >>
-deltan0 = deltan;
 
 %{
  inv_se = inv(se);      x0 = norm(eye(size(se)) - inv_se * se,'fro');
@@ -302,6 +312,7 @@ for ii = 1 : driver.oem.nloop
     end
 
 iDebugNLOOP = +1;
+iDebugNLOOP = -1;
 if iDebugNLOOP > 0
   hdffile = '/home/sergio/MATLABCODE/airs_l1c_srf_tables_lls_20181205.hdf';   % what he gave in Dec 2018
   vchan2834 = hdfread(hdffile,'freq');
@@ -315,7 +326,6 @@ if iDebugNLOOP > 0
     figure(3); plot(1:length(xb),xnIN,'b.-',1:length(xb),xn,'ro-',1:length(xb),xb,'kx-'); grid; title(['ParamsN Loop ' num2str(ii) ]);
     figure(4); plot(1:length(xb),deltax,'bo-'); grid; title(['deltax Loop ' num2str(ii) ]); 
     pause
-
 end
 
 
@@ -323,7 +333,7 @@ end
     deltan = (driver.rateset.rates - fx00) - thefitr';
     deltan = deltan(inds);
     %deltan = deltan - thefitr(inds)'; whos deltan
-    chisqr(ii) = nansum(deltan'.*deltan')
+    chisqr(ii) = nansum(deltan'.*deltan');
    
     if driver.oem.doplots
       clf
@@ -334,13 +344,23 @@ end
   end
 end
 
-best = find(chisqr ==  min(chisqr),1);
-rodgers_rate = xsave(best,:);
-if iAddXB > 0
-  rodgers_rate = rodgers_rate + xb;  %% if you started out with non zero z priori
-end
+renormalize = driver.qrenorm';
+renormalize(1:5)
 
-if driver.oem.nloop > 1
+xsave(:,1:5)
+
+chisqr
+best = find(chisqr ==  min(chisqr),1)
+rodgers_rate = xsave(best,:)
+
+%rodgers_rate.*renormalize'
+%whos xsave
+
+%if iAddXB > 0
+%  rodgers_rate = rodgers_rate + xb;  %% if you started out with non zero z priori
+%end
+
+if driver.oem.nloop >= 0
   disp('printing out successive chisqr values (upto N-1 th iterate) ...')
   chisqr
 end
