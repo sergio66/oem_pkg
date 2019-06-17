@@ -140,6 +140,7 @@ end
 %   I'd prefer xn = xb!!! of course if xb = 0 this is moot
 % xn = zeros(zz1,zz2);  %% orig, before July 2013
 xn = xb;              %% after July 2013
+xnIN = xn;
 
 % Form k matrix (Jacobians)
 k = m_ts_jac(inds,:);
@@ -150,7 +151,10 @@ fx = zeros(size(driver.rateset.rates));
 for iy = 1 : length(xn)
    fx = fx + (xn(iy)*m_ts_jac(:,iy));
 end
-deltan = driver.rateset.rates(inds) - fx(inds);
+fx00 = fx;
+deltan00 = driver.rateset.rates - fx00;           %%% << this is what we are fitting >>
+deltan = driver.rateset.rates(inds) - fx(inds);   %%% << this is what we are fitting >>
+deltan0 = deltan;
 
 %{
  inv_se = inv(se);      x0 = norm(eye(size(se)) - inv_se * se,'fro');
@@ -272,16 +276,16 @@ for ii = 1 : driver.oem.nloop
   end
   deltax = dx1*dx2; 
 
-%{
+  %{
   figure(1); plot(1:length(deltan),k);
   figure(2); pcolor(inv_se); shading flat; colorbar
   figure(2); plot(1:length(deltan),1./sqrt(diag(inv_se)),'b',1:length(deltan),-1./sqrt(diag(inv_se)),'b',1:length(deltan),deltan,'r'); grid
   figure(3); plot(dx2); title('dx2');
   figure(4); plot(dx1*dx2); title('DX1 * dx2');
   %error('lks')
-%}
+  %}
 
-% Update first guess with deltax changes
+  % Update first guess with deltax changes
   rodgers_rate = real(xn + deltax);
   xn = rodgers_rate;
 
@@ -297,21 +301,44 @@ for ii = 1 : driver.oem.nloop
       thefitr = thefitr + xn(ix)*m_ts_jac(:,ix)';
     end
 
+iDebugNLOOP = +1;
+if iDebugNLOOP > 0
+  hdffile = '/home/sergio/MATLABCODE/airs_l1c_srf_tables_lls_20181205.hdf';   % what he gave in Dec 2018
+  vchan2834 = hdfread(hdffile,'freq');
+  f = vchan2834;
+  load sarta_chans_for_l1c.mat
+  f = f(ichan);
+ 
+    figure(1); plot(f(inds),deltan0,'kx-',f(inds),deltan,'b.-',f(inds),thefitr(inds),'r',...
+		    f(inds),deltan0-thefitr(inds)','g--'); grid; title(['Rates Loop ' num2str(ii) ]);
+    figure(2); plot(f(inds),deltan0-thefitr(inds)'); grid; title(['black-red = fit this d(spectra) next after Loop ' num2str(ii) ]);
+    figure(3); plot(1:length(xb),xnIN,'b.-',1:length(xb),xn,'ro-',1:length(xb),xb,'kx-'); grid; title(['ParamsN Loop ' num2str(ii) ]);
+    figure(4); plot(1:length(xb),deltax,'bo-'); grid; title(['deltax Loop ' num2str(ii) ]); 
+    pause
+
+end
+
+
     % Compute chisqr, and new deltan
-    deltan = driver.rateset.rates' - thefitr;
-    deltan = deltan(:,inds)';
-    chisqr(ii) = nansum(deltan'.*deltan');
+    deltan = (driver.rateset.rates - fx00) - thefitr';
+    deltan = deltan(inds);
+    %deltan = deltan - thefitr(inds)'; whos deltan
+    chisqr(ii) = nansum(deltan'.*deltan')
    
     if driver.oem.doplots
-       clf
-       plot(1:length(deltan),deltanIN,1:length(deltan),deltan,'r'); 
-       title(['obs - fit at iteration ' num2str(ii)]); pause(0.1)
-   end
+      clf
+      plot(1:length(deltan),deltanIN,1:length(deltan),deltan,'r'); 
+      title(['obs - fit at iteration ' num2str(ii)]); pause(0.1)
+    end
+    xnIN = xn;
   end
 end
 
 best = find(chisqr ==  min(chisqr),1);
 rodgers_rate = xsave(best,:);
+if iAddXB > 0
+  rodgers_rate = rodgers_rate + xb;  %% if you started out with non zero z priori
+end
 
 if driver.oem.nloop > 1
   disp('printing out successive chisqr values (upto N-1 th iterate) ...')
