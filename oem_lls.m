@@ -19,7 +19,7 @@ end
 if driver.oem.dofit
 
   % Do the OEM retrieval
-  [rodgers_rate,errorx,dofs,cdofs,gain,kern,r,se,inv_se,se_errors,kern_water,kern_temp,kern_ozone] = rodgers(driver,aux);
+  [rodgers_rate,errorx,dofs,cdofs,gain,kern,r,se,inv_se,se_errors,kern_water,kern_temp,kern_ozone,bestloop] = rodgers(driver,aux);
 
   % Save terms used in the Se error matrix
   driver.oem.forwardmodel_errors = se_errors.fmerrors;
@@ -35,6 +35,8 @@ if driver.oem.dofit
   driver.oem.ak_temp  = kern_temp;
   driver.oem.ak_ozone = kern_ozone;
   driver.oem.error_cov = errorx;
+  driver.oem.bestloop  = bestloop;
+
   coeffsr          = rodgers_rate;
   coeffssigr       = sqrt(diag(errorx)');    % AVT sigs should be square root of the covariance diagonal
 

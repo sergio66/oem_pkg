@@ -1,4 +1,4 @@
-function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,ak_temp,ak_ozone] = rodgers(driver,aux)
+function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,ak_temp,ak_ozone,bestloop] = rodgers(driver,aux)
 
 %---------------------------------------------------------------------------
 % OEM retrieval for RATES so y(x) = sum(rates(i) * jac(:,i)), to compare to yIN
@@ -33,6 +33,7 @@ function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,
 %   se                 = actual channel covariance matrix used for spectral obs (eg 1x2378 or 1x8461)
 %   inv_se             = actual channel inverse covariance matrix used
 %   se_errors          = actual channel uncertainties used
+%   bestloop           = iteration number where minimum chisqr was found; the oem params saved at this point
 %
 %---------------------------------------------------------------------------
 % Jacobians
@@ -83,7 +84,7 @@ if (length(inds) < nn & driver.oem.dofit)
   disp('More jacobians than channels! will subset below')
 end
 
-% Apriori state
+% Apriori state; make sure it has been correctly normalized before being used here!
 xb       = aux.xb;
 
 % Covariance (uncertainties/correlations) of measurements
@@ -146,8 +147,8 @@ xnIN = xn;
 k = m_ts_jac(inds,:);
 [mm,nn] = size(k);
 
-iAddXB = -1; %% new, makes more sense
-iAddXB = +1; %% orig, wierd 
+iAddXB = -1; %% new, does this really makes more sense see eg anomaly_0dayavg_resultsXloop3try2?????
+iAddXB = +1; %% orig, wierd but I think it is ok as you need delta0 = obs - fx = obs-f(x0) = obs - f(xb)
 if iAddXB > 0
   % Form y - F(xa), this is orig code but a little wierd!!!!!!
   fx = zeros(size(driver.rateset.rates));
@@ -155,15 +156,15 @@ if iAddXB > 0
      fx = fx + (xn(iy)*m_ts_jac(:,iy));
   end
   fx00 = fx;
-  deltan00 = driver.rateset.rates - fx00;           %%% << this is what we are fitting >>
-  deltan = driver.rateset.rates(inds) - fx(inds);   %%% << this is what we are fitting >>
-  deltan0 = deltan;
+  deltan00 = driver.rateset.rates - fx00;    %%% << this is what we are fitting, all chans >>
+  deltan   = deltan00(inds);                 %%% << this is what we are fitting, selected chans >>
+  deltan0  = deltan;
 else
   fx = zeros(size(driver.rateset.rates));
   fx00 = fx;
-  deltan00 = driver.rateset.rates - fx00;           %%% << this is what we are fitting >>
-  deltan = driver.rateset.rates(inds) - fx(inds);   %%% << this is what we are fitting >>
-  deltan0 = deltan;
+  deltan00 = driver.rateset.rates - fx00;    %%% << this is what we are fitting, all chans >>
+  deltan   = deltan00(inds);                 %%% << this is what we are fitting, selected chans >>
+  deltan0  = deltan;
 end
 
 %{
@@ -254,6 +255,8 @@ switch driver.oem.reg_type
 end
 
 %whos r k inv_se
+chisqr0 = nansum(deltan'.*deltan');
+
 for ii = 1 : driver.oem.nloop
   % Do the retrieval inversion
   if invtype ~= 3
@@ -296,12 +299,16 @@ for ii = 1 : driver.oem.nloop
   %}
 
   % Update first guess with deltax changes
+  xnbefore = xn;
+
   rodgers_rate = real(xn + deltax);
   xn = rodgers_rate;
 
   xsave(ii,:) = rodgers_rate;
 
   if ii <= driver.oem.nloop
+    %% so this will be executed even if driver.oem.nloop == 1
+
     deltanIN = deltan;
     xn = rodgers_rate;
 
@@ -311,28 +318,35 @@ for ii = 1 : driver.oem.nloop
       thefitr = thefitr + xn(ix)*m_ts_jac(:,ix)';
     end
 
-iDebugNLOOP = +1;
-iDebugNLOOP = -1;
-if iDebugNLOOP > 0
-  hdffile = '/home/sergio/MATLABCODE/airs_l1c_srf_tables_lls_20181205.hdf';   % what he gave in Dec 2018
-  vchan2834 = hdfread(hdffile,'freq');
-  f = vchan2834;
-  load sarta_chans_for_l1c.mat
-  f = f(ichan);
- 
-    figure(1); plot(f(inds),deltan0,'kx-',f(inds),deltan,'b.-',f(inds),thefitr(inds),'r',...
-		    f(inds),deltan0-thefitr(inds)','g--'); grid; title(['Rates Loop ' num2str(ii) ]);
-    figure(2); plot(f(inds),deltan0-thefitr(inds)'); grid; title(['black-red = fit this d(spectra) next after Loop ' num2str(ii) ]);
-    figure(3); plot(1:length(xb),xnIN,'b.-',1:length(xb),xn,'ro-',1:length(xb),xb,'kx-'); grid; title(['ParamsN Loop ' num2str(ii) ]);
-    figure(4); plot(1:length(xb),deltax,'bo-'); grid; title(['deltax Loop ' num2str(ii) ]); 
-    pause
-end
+    iDebugNLOOP = +1;
+    iDebugNLOOP = -1;
+    if iDebugNLOOP > 0
+      hdffile = '/home/sergio/MATLABCODE/airs_l1c_srf_tables_lls_20181205.hdf';   % what he gave in Dec 2018
+      vchan2834 = hdfread(hdffile,'freq');
+      f = vchan2834;
+      load sarta_chans_for_l1c.mat
+      f = f(ichan);
 
+      figure(1); plot(f(inds),driver.rateset.rates(inds),'k.-',f(inds),deltan0,'kx-',f(inds),deltan,'b.-',f(inds),thefitr(inds),'g',...
+		    f(inds),driver.rateset.rates(inds)-thefitr(inds)','r'); grid; title(['Rates Loop ' num2str(ii) ]);
+        hl = legend('orig data','orig residual Y-f(x0)','residual at start of Nth iteration Y-f(xn-1)','f(xn)','residual still to fit','location','best');
+      figure(2); plot(f(inds),driver.rateset.rates(inds)-thefitr(inds)','b',f(inds),sqrt(diag(se)),'k',f(inds),-sqrt(diag(se)),'k'); 
+                 grid; title(['fit this d(spectra) next after Loop ' num2str(ii) ]);
+      figure(3); plot(1:length(xb),xnIN,'b.-',1:length(xb),xn,'ro-',1:length(xb),xb,'kx-'); grid; title(['ParamsN Loop ' num2str(ii) ]);
+      figure(4); plot(1:length(xb),deltax,'bo-'); grid; title(['deltax Loop ' num2str(ii) ]); 
+
+      figure(5); clf; plot(1:length(deltan),driver.rateset.rates(inds),'b',1:length(deltan),deltan0,'r','linewidth',2); grid
+      legend('input data Y','deltan0 = Y-f(x0)','location','best');
+
+       figure(7); plot(deltan); grid; figure(8); plot(dx2); grid; sum(xn-xb)
+
+       [xnbefore(1:5) deltax(1:5) xn(1:5)]
+      disp('ret'); pause
+    end
 
     % Compute chisqr, and new deltan
-    deltan = (driver.rateset.rates - fx00) - thefitr';
+    deltan = driver.rateset.rates - thefitr';
     deltan = deltan(inds);
-    %deltan = deltan - thefitr(inds)'; whos deltan
     chisqr(ii) = nansum(deltan'.*deltan');
    
     if driver.oem.doplots
@@ -344,26 +358,35 @@ end
   end
 end
 
-renormalize = driver.qrenorm';
-renormalize(1:5)
-
-xsave(:,1:5)
-
-chisqr
-best = find(chisqr ==  min(chisqr),1)
-rodgers_rate = xsave(best,:)
-
-%rodgers_rate.*renormalize'
-%whos xsave
-
-%if iAddXB > 0
-%  rodgers_rate = rodgers_rate + xb;  %% if you started out with non zero z priori
-%end
+bestloop = find(chisqr ==  min(chisqr),1);
+fprintf(1,'bestloop (lowest chisqr) occured at iteration %3i \n',bestloop)
+rodgers_rate = xsave(bestloop,:);
 
 if driver.oem.nloop >= 0
   disp('printing out successive chisqr values (upto N-1 th iterate) ...')
-  chisqr
+  [chisqr0 chisqr]
 end
+
+iDebug = 0;   %% minimum debug
+iDebug = +1;  %% tons of debug
+iDebug = -1;  %% NO debug
+if iDebug > 0
+  %% gory detail
+  renormalize = driver.qrenorm';
+  wah = rodgers_rate.*renormalize';
+  [xb(1:5)'; zeros(1,5);  xsave(:,1:5);  zeros(1,5);  wah(1:5)]
+  disp('ret 2  to continue'); pause;
+elseif iDebug == 0
+  %% just the basics
+  renormalize = driver.qrenorm';
+  wah = rodgers_rate.*renormalize';
+  wah(1:5)
+end
+
+%if iAddXB > 0   %% old wierd way of doing things
+%  %%% actually we never did this
+%  %%% rodgers_rate = rodgers_rate + xb;  %% if you started out with non zero z priori
+%end
 
 % Error analysis and diagnostics
 
