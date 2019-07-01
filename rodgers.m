@@ -166,6 +166,8 @@ else
   deltan   = deltan00(inds);                 %%% << this is what we are fitting, selected chans >>
   deltan0  = deltan;
 end
+%figure(1); plot(1:length(deltan00),deltan00,'r',1:length(deltan00),driver.rateset.rates,'b'); 
+%figure(2); plot(1:length(deltan0),deltan0,'r',1:length(deltan0),driver.rateset.rates(inds),'b'); 
 
 %{
  inv_se = inv(se);      x0 = norm(eye(size(se)) - inv_se * se,'fro');
@@ -266,6 +268,7 @@ for ii = 1 : driver.oem.nloop
     dx1 = r + k'*dx1;
   end
 
+  dx1_0 = dx1;
   if invtype == 0
     dx1  = inv(dx1);
   elseif invtype == 1
@@ -289,14 +292,39 @@ for ii = 1 : driver.oem.nloop
   end
   deltax = dx1*dx2; 
 
-  %{
-  figure(1); plot(1:length(deltan),k);
-  figure(2); pcolor(inv_se); shading flat; colorbar
-  figure(2); plot(1:length(deltan),1./sqrt(diag(inv_se)),'b',1:length(deltan),-1./sqrt(diag(inv_se)),'b',1:length(deltan),deltan,'r'); grid
-  figure(3); plot(dx2); title('dx2');
-  figure(4); plot(dx1*dx2); title('DX1 * dx2');
-  %error('lks')
-  %}
+  iDebug = +1;
+  iDebug = -1;
+  if iDebug > 0
+    hdffile = '/home/sergio/MATLABCODE/airs_l1c_srf_tables_lls_20181205.hdf';   % what he gave in Dec 2018
+    vchan2834 = hdfread(hdffile,'freq');
+    f = vchan2834;
+    load sarta_chans_for_l1c.mat
+    f = f(ichan);
+    f = f(inds);
+
+    %addpath /home/sergio/MATLABCODE; keyboard_nowindow
+    figure(1); plot(f,k); grid
+    figure(1); plot(f,k(:,1:5)); grid
+%  figure(1); plot(f,k(:,1)); grid
+    figure(2); pcolor(inv_se); shading flat; colorbar
+    figure(2); plot(1:length(deltan),1./sqrt(diag(inv_se)),'b',1:length(deltan),-1./sqrt(diag(inv_se)),'b',1:length(deltan),deltan,'r'); grid
+    figure(2); plot(1:length(deltan),1./sqrt(diag(inv_se)),'b',1:length(deltan),-1./sqrt(diag(inv_se)),'b'); grid
+    figure(3); plot(dx2,'o-'); title('dx2'); grid
+    figure(4); plot(dx1*dx2,'o-'); title('DX1 * dx2'); grid
+
+    figure(5); plot(dx1*dx2,'o-'); title('DX1 * dx2'); axis([0 80 -200 +200]); grid
+
+%    dx1 = r + k' * inv_se * k; dx1 = inv(dx1);
+    figure(5); pcolor(log10(abs(dx1_0)));   colorbar; colormap jet; caxis([-5 +5]); shading flat
+    figure(6); pcolor(log10(abs(dx1)));   colorbar; colormap jet; caxis([-5 +5]); shading flat
+    figure(7); plot(r); colorbar; colormap jet; shading flat
+    figure(7); pcolor(log10(abs(dx1 * dx1_0))); colorbar; colormap jet; shading flat
+    plot(dx1)
+    figure(8); plot(k); colorbar; colormap jet; shading flat
+  
+    pause
+    %error('lks')
+  end
 
   % Update first guess with deltax changes
   xnbefore = xn;
