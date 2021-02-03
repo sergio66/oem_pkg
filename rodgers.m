@@ -150,11 +150,18 @@ k = m_ts_jac(inds,:);
 iAddXB = -1; %% new, does this really makes more sense see eg anomaly_0dayavg_resultsXloop3try2?????
 iAddXB = +1; %% orig, wierd but I think it is ok as you need delta0 = obs - fx = obs-f(x0) = obs - f(xb)
 if iAddXB > 0
+  nyuk = find(abs(xn) > eps);
+  %[nyuk xn(nyuk)]
   % Form y - F(xa), this is orig code but a little wierd!!!!!!
   fx = zeros(size(driver.rateset.rates));
   for iy = 1 : length(xn)
      fx = fx + (xn(iy)*m_ts_jac(:,iy));
   end
+  disp('   xn    |qrenorm   |  xn.*qrenorm')
+  disp('------------------------------------')
+  fprintf(1,'%8.4f | %8.4f | %8.4f \n', [xn(1:10)   driver.qrenorm(1:10)'  xn(1:10).*driver.qrenorm(1:10)']')
+  disp('------------------------------------')
+
   fx00 = fx;
   deltan00 = driver.rateset.rates - fx00;    %%% << this is what we are fitting, all chans >>
   deltan   = deltan00(inds);                 %%% << this is what we are fitting, selected chans >>
@@ -166,8 +173,63 @@ else
   deltan   = deltan00(inds);                 %%% << this is what we are fitting, selected chans >>
   deltan0  = deltan;
 end
-%figure(1); plot(1:length(deltan00),deltan00,'r',1:length(deltan00),driver.rateset.rates,'b'); 
-%figure(2); plot(1:length(deltan0),deltan0,'r',1:length(deltan0),driver.rateset.rates(inds),'b'); 
+
+% hdffile = '/home/sergio/MATLABCODE/airs_l1c_srf_tables_lls_20181205.hdf';   % what he gave in Dec 2018
+% vchan2834 = hdfread(hdffile,'freq');
+% f = vchan2834;
+% load sarta_chans_for_l1c.mat
+% f = f(ichan);
+% f = f(inds);
+if length(driver.rateset.rates) == 2645
+  f = instr_chans2645;
+elseif length(driver.rateset.rates) == 2378
+  f = instr_chans;
+else
+  error('oooorrr is this AIRS 2378 or 245?')
+end
+figure(1); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),fx(inds),'r',f(inds),driver.rateset.rates(inds) - fx00(inds),'k'); title('in oem\_pkg/rodgers.m : nyuk'); 
+  hl = legend('input rates','adding on trace gas jacs','new to be fitted b-r','location','best');
+
+if iAddXB > 0
+  %indsy791 = find(f >= 790,1); indsy791 = sort([inds; (indsy791-25:indsy791+25)']);
+
+  if driver.oem.doplots > 0
+    figure(2); plot(f(inds),m_ts_jac(inds,1)); title('Should be CO2 jac')
+    figure(2); plot(f(inds),m_ts_jac(inds,1),'.-'); title('Should be CO2 jac'); xlim([640 840]); grid; grid minor
+  
+    miaow = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/g2_jac.mat');
+    figure(2); plot(f(inds),m_ts_jac(inds,1),'.-',miaow.fout,sum(miaow.jout')*2.2/370); title('Should be CO2 jac'); xlim([640 840]); grid; grid minor
+      hl = legend('input jac','from STD/g2\_jac.mat','location','best','fontsize',10);
+  
+    miaow = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/surface_jac.mat');
+    iST = 3; %% anomaly tile spectra
+    figure(3); plot(f(inds),m_ts_jac(inds,iST),'.-',miaow.fout,miaow.jsurface(:,1)*0.1); title('Should be ST jac'); xlim([640 1340]); grid; grid minor
+      hl = legend('input jac','from STD/surface\_jac.mat','location','best','fontsize',10);
+  
+    miaow1   = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/g1_jac.mat');
+    miaow101 = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/g101_jac.mat');
+    miaow102 = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/g102_jac.mat');
+    miaow = miaow1;
+      miaow.jout = miaow1.jout + miaow101.jout + miaow102.jout;
+    iWV = 04:23; %% anomaly tile spectra
+    figure(4); plot(f(inds),sum(m_ts_jac(inds,iWV),2),'.-',miaow.fout,sum(miaow.jout')*0.01); title('Should be WV jac'); xlim([640 1340]); grid; grid minor
+      hl = legend('input jac','from STD/g1\_jac.mat','location','best','fontsize',10);
+  
+    miaow   = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/temp_jac.mat');
+    iTz = 20+(04:23); %% anomaly tile spectra
+    figure(5); plot(f(inds),sum(m_ts_jac(inds,iTz),2),'.-',miaow.fout,sum(miaow.jtemp')*0.01); title('Should be T jac'); xlim([640 1340]); grid; grid minor
+      hl = legend('input jac','from STD/temp\_jac.mat','location','best','fontsize',10);
+  
+    miaow   = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/g3_jac.mat');
+    iO3 = 40+(04:23); %% anomaly tile spectra
+    figure(6); plot(f(inds),sum(m_ts_jac(inds,iO3),2),'.-',miaow.fout,sum(miaow.jout')*0.01); title('Should be O3 jac'); xlim([640 1340]); grid; grid minor
+      hl = legend('input jac','from STD/g3\_jac.mat','location','best','fontsize',10);
+  pause(0.1)
+  end
+end
+%disp('nyuk rodgers.m ret to continue'); pause
+
+%pause(0.1);
 
 %{
  inv_se = inv(se);      x0 = norm(eye(size(se)) - inv_se * se,'fro');
@@ -238,10 +300,16 @@ s = transpose(l)*l;
 
 %% now build the Tikhonov regularization block matrix, using "s"
 lenS = length(driver.jacobian.scalar_i);
-%% default : only column/stemp jacs, layer T, layer WV
-rc = blkdiag(zeros(lenS,lenS),driver.oem.alpha_water*s,driver.oem.alpha_temp*s);
-if isfield(driver.oem,'alpha_ozone')
+%% default : only column/stemp jacs, layer WV
+rc = blkdiag(zeros(lenS,lenS),driver.oem.alpha_water*s);
+
+%% always assumes you want to fit for WV ... may want to keep T fixed 9so no fit) and also may not want to fit O3
+if isfield(driver.oem,'alpha_temp') & isfield(driver.oem,'alpha_ozone')
   rc = blkdiag(zeros(lenS,lenS),driver.oem.alpha_water*s,driver.oem.alpha_temp*s,driver.oem.alpha_ozone*s);
+elseif isfield(driver.oem,'alpha_temp') & ~isfield(driver.oem,'alpha_ozone')
+  rc = blkdiag(zeros(lenS,lenS),driver.oem.alpha_water*s,driver.oem.alpha_temp*s);
+elseif ~isfield(driver.oem,'alpha_temp') & isfield(driver.oem,'alpha_ozone')
+  rc = blkdiag(zeros(lenS,lenS),driver.oem.alpha_water*s,driver.oem.alpha_ozone*s);
 end
 
 % if invtype == 3, rcov could be a class rather than double
@@ -259,10 +327,18 @@ end
 %whos r k inv_se
 chisqr0 = nansum(deltan'.*deltan');
 
+%whos rcov rc r k inv_se
+%disp('rodgers.m 1'); keyboard_nowindow
+
 for ii = 1 : driver.oem.nloop
   % Do the retrieval inversion
   if invtype ~= 3
     dx1 = r + k' * inv_se * k;
+    figure(7); imagesc(log10(abs(r))); title('r'); colorbar
+    figure(8); imagesc(log10(abs(k))); title('k'); colorbar
+    figure(9); imagesc(log10(abs(inv_se))); title('inv_se'); colorbar
+    pause(0.1)
+
   elseif invtype == 3
     dx1 = inv_seF\k;
     dx1 = r + k'*dx1;
@@ -290,17 +366,16 @@ for ii = 1 : driver.oem.nloop
   elseif invtype == 3
     dx2 = k'/inv_seF * deltan - r*(xn-xb);
   end
-  deltax = dx1*dx2; 
+  deltax = dx1*dx2;
+  figure(4); plot(diag(dx1)); colorbar; title('log10(dx1)');
+  figure(5); imagesc(log10(abs(dx1))); colorbar; title('dx1');
+  figure(6); plot(dx2);                 title('dx2');
+  figure(7); plot(deltan);              title('deltaBT to fit')
+  figure(8); plot(deltax);              title('deltax')
 
   iDebug = +1;
   iDebug = -1;
   if iDebug > 0
-    hdffile = '/home/sergio/MATLABCODE/airs_l1c_srf_tables_lls_20181205.hdf';   % what he gave in Dec 2018
-    vchan2834 = hdfread(hdffile,'freq');
-    f = vchan2834;
-    load sarta_chans_for_l1c.mat
-    f = f(ichan);
-    f = f(inds);
 
     %addpath /home/sergio/MATLABCODE; keyboard_nowindow
     figure(1); plot(f,k); grid
@@ -322,7 +397,7 @@ for ii = 1 : driver.oem.nloop
     plot(dx1)
     figure(8); plot(k); colorbar; colormap jet; shading flat
   
-    pause
+    pause(0.1)
     %error('lks')
   end
 
@@ -330,6 +405,8 @@ for ii = 1 : driver.oem.nloop
   xnbefore = xn;
 
   rodgers_rate = real(xn + deltax);
+  figure(9); plot(1:length(xn),xn,'ko-',1:length(xn),deltax,'bx-',1:length(xn),real(xn+deltax),'r.-')
+
   xn = rodgers_rate;
 
   xsave(ii,:) = rodgers_rate;
@@ -373,7 +450,8 @@ for ii = 1 : driver.oem.nloop
     end
 
     % Compute chisqr, and new deltan
-    deltan = driver.rateset.rates - thefitr';
+    deltan = driver.rateset.rates - thefitr';           %% till  Jan 2021
+    deltan = (driver.rateset.rates - fx00) - thefitr';  %% after Feb 2021
     deltan = deltan(inds);
     chisqr(ii) = nansum(deltan'.*deltan');
    
@@ -386,13 +464,19 @@ for ii = 1 : driver.oem.nloop
   end
 end
 
+figure(10); plot(1:length(deltan),driver.rateset.rates(inds),'b',1:length(deltan),thefitr(inds),'r',1:length(deltan),deltan,'k'); 
+figure(10); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),driver.rateset.rates(inds) - fx00(inds),'k.-',f(inds),thefitr(inds),'r.-',f(inds),deltan,'g.-','linewidth',2); plotaxis2;
+  hl = legend('signal IN','signal IN after adding on trace gas jacs','fit','residual (black-red)','location','best','fontsize',8);
+      title(['rodgers.m : after fitting : \newline obs - fit at iteration ' num2str(ii)]); pause(0.1)
+
+%disp('rodgers.m 2'); keyboard_nowindow
+
 bestloop = find(chisqr ==  min(chisqr),1);
 fprintf(1,'bestloop (lowest chisqr) occured at iteration %3i \n',bestloop)
 rodgers_rate = xsave(bestloop,:);
 
 if driver.oem.nloop >= 0
-  disp('printing out successive chisqr values (upto N-1 th iterate) ...')
-  [chisqr0 chisqr]
+  fprintf(1,'printing out successive chisqr values (upto N-1 th iterate) ... %8.6f %8.6f \n',[chisqr0 chisqr(end)])
 end
 
 iDebug = 0;   %% minimum debug
@@ -443,6 +527,13 @@ elseif invtype == 9999
   [L,U] = lu(AKstuff);
   errorx = inv(U)*inv(L);                %% trying LU
 end
+
+%{
+keyboard_nowindow; 
+figure(1); plot(rc); title('rc = tikonov regularization');
+figure(2); plot(rcov); title('rcov = cov regularization');
+figure(3); plot(k' * inv_se * k); title('k'' x se-1 x k');
+%}
 
 dofsx  = errorx * r; 
 dofsx  = eye(size(dofsx)) - dofsx; 
@@ -543,3 +634,4 @@ else
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
