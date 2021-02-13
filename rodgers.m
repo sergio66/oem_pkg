@@ -41,6 +41,7 @@ m_ts_jac = aux.m_ts_jac;
 
 % Index of frequencies used
 inds     = driver.jacobian.chanset;
+%inds     = inds(inds <= 600);  'to only do 15 um chans in rodgers.m'
 
 invtype = 0;  %% inv
 invtype = 1;  %% pinv     BEST *****
@@ -48,20 +49,6 @@ invtype = 2;  %% S. Rump      invillco   addpath /home/sergio/MATLABCODE/IntLab
 invtype = 3;  %% T. A. Davis  factorize  addpath /home/sergio/MATLABCODE/FactorizeMatrix/Factorize
 invtype = 4;  %% for Se do a ridge regression    Se --> Senew = Se + delta I
 invtype = 5;  %% for Se do a minimum eigenvalue  Se --> Senew = Se + blah (eig > minimum)
-
-% max condition number for invtype == 4
-kmax = 1000;  
-kmax = 10000;  
-kmax = 100000;  
-kmax = 1e4;  %% works pretty good  
-
-kmax = 1e1; 
-
-% min eigenvalue for invtype == 5
-sigmin = 1.0e-12;
-sigmin = 1.0e-10; %% works pretty good
-sigmin = 1.0e-16;
-
 if ~isfield(aux,'invtype')
   aux.invtype = 1;   %% default is to use pinv
 end
@@ -71,6 +58,19 @@ if invtype < 0 | invtype > 5
 end
 fprintf(1,'inverse of matrices using method (0) inv (1) PINV (default) (2) invillco (3) factorize (4) Se RR (5) Se ME : %2i \n',invtype);
 
+% max condition number for invtype == 4
+kmax = 1000;  
+kmax = 10000;  
+kmax = 100000;  
+kmax = 1e4;  %% works pretty good  
+kmax = 1e1; 
+
+% min eigenvalue for invtype == 5
+sigmin = 1.0e-12;
+sigmin = 1.0e-10; %% works pretty good
+sigmin = 1.0e-16;
+
+addpath /home/sergio/MATLABCODE
 if invtype == 2
   addpath /home/sergio/MATLABCODE/IntLab
 elseif invtype == 3
@@ -148,28 +148,28 @@ k = m_ts_jac(inds,:);
 [mm,nn] = size(k);
 
 iAddXB = -1; %% new, does this really makes more sense see eg anomaly_0dayavg_resultsXloop3try2?????
-iAddXB = +1; %% orig, wierd but I think it is ok as you need delta0 = obs - fx = obs-f(x0) = obs - f(xb)
+iAddXB = +1; %% orig, wierd but I think it is ok as you need delta0 = obs - tracegas_offset = obs-f(x0) = obs - f(xb)
 if iAddXB > 0
   nyuk = find(abs(xn) > eps);
   %[nyuk xn(nyuk)]
   % Form y - F(xa), this is orig code but a little wierd!!!!!!
-  fx = zeros(size(driver.rateset.rates));
+  tracegas_offset = zeros(size(driver.rateset.rates));
   for iy = 1 : length(xn)
-     fx = fx + (xn(iy)*m_ts_jac(:,iy));
+     tracegas_offset = tracegas_offset + (xn(iy)*m_ts_jac(:,iy));
   end
   disp('   xn    |qrenorm   |  xn.*qrenorm')
   disp('------------------------------------')
   fprintf(1,'%8.4f | %8.4f | %8.4f \n', [xn(1:10)   driver.qrenorm(1:10)'  xn(1:10).*driver.qrenorm(1:10)']')
   disp('------------------------------------')
 
-  fx00 = fx;
-  deltan00 = driver.rateset.rates - fx00;    %%% << this is what we are fitting, all chans >>
+  tracegas_offset00 = tracegas_offset;
+  deltan00 = driver.rateset.rates - tracegas_offset00;    %%% << this is what we are fitting, all chans >>
   deltan   = deltan00(inds);                 %%% << this is what we are fitting, selected chans >>
   deltan0  = deltan;
 else
-  fx = zeros(size(driver.rateset.rates));
-  fx00 = fx;
-  deltan00 = driver.rateset.rates - fx00;    %%% << this is what we are fitting, all chans >>
+  tracegas_offset = zeros(size(driver.rateset.rates));
+  tracegas_offset00 = tracegas_offset;
+  deltan00 = driver.rateset.rates - tracegas_offset00;    %%% << this is what we are fitting, all chans >>
   deltan   = deltan00(inds);                 %%% << this is what we are fitting, selected chans >>
   deltan0  = deltan;
 end
@@ -187,42 +187,81 @@ elseif length(driver.rateset.rates) == 2378
 else
   error('oooorrr is this AIRS 2378 or 245?')
 end
-figure(1); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),fx(inds),'r',f(inds),driver.rateset.rates(inds) - fx00(inds),'k'); title('in oem\_pkg/rodgers.m : nyuk'); 
-  hl = legend('input rates','adding on trace gas jacs','new to be fitted b-r','location','best');
+figure(1); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),tracegas_offset(inds),'g.-',f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'c.-','linewidth',2); 
+  plotaxis2; title('in oem\_pkg/rodgers.m : nyuk'); 
+  hl = legend('input rates','trace gas jacs offset','signal''= to fit b-g','location','best');
 
 if iAddXB > 0
   %indsy791 = find(f >= 790,1); indsy791 = sort([inds; (indsy791-25:indsy791+25)']);
 
+  %driver.oem.doplots = 1  
   if driver.oem.doplots > 0
+    iTRPorSTD = +49;
+    iTRPorSTD = +1;
+
     figure(2); plot(f(inds),m_ts_jac(inds,1)); title('Should be CO2 jac')
     figure(2); plot(f(inds),m_ts_jac(inds,1),'.-'); title('Should be CO2 jac'); xlim([640 840]); grid; grid minor
   
-    miaow = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/g2_jac.mat');
+    if iTRPorSTD == 49
+      miaow = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/g2_jac.mat');
+    elseif iTRPorSTD == 1
+      miaow = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/TRP/g2_jac.mat');
+    end
     figure(2); plot(f(inds),m_ts_jac(inds,1),'.-',miaow.fout,sum(miaow.jout')*2.2/370); title('Should be CO2 jac'); xlim([640 840]); grid; grid minor
       hl = legend('input jac','from STD/g2\_jac.mat','location','best','fontsize',10);
   
-    miaow = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/surface_jac.mat');
-    iST = 3; %% anomaly tile spectra
-    figure(3); plot(f(inds),m_ts_jac(inds,iST),'.-',miaow.fout,miaow.jsurface(:,1)*0.1); title('Should be ST jac'); xlim([640 1340]); grid; grid minor
+    if iTRPorSTD == 49
+      miaow = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/g6_jac.mat');
+    elseif iTRPorSTD == 1
+      miaow = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/TRP/g6_jac.mat');
+    end
+    iCH4 = 3; %% anomaly tile spectra
+    figure(3); plot(f(inds),m_ts_jac(inds,iCH4),'.-',miaow.fout,sum(miaow.jout')*5/1860); title('Should be CH4 jac'); xlim([640 1340]); grid; grid minor
+      hl = legend('input jac','from STD/g6\_jac.mat','location','best','fontsize',10);
+
+    if iTRPorSTD == 49
+      miaow = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/surface_jac.mat');
+    elseif iTRPorSTD == 1
+      miaow = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/TRP/surface_jac_new.mat');
+    end
+    iST = 4; %% anomaly tile spectra
+    figure(4); plot(f(inds),m_ts_jac(inds,iST),'.-',miaow.fout,miaow.jsurface(:,1)*0.1); title('Should be ST jac'); xlim([640 1340]); grid; grid minor
       hl = legend('input jac','from STD/surface\_jac.mat','location','best','fontsize',10);
   
-    miaow1   = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/g1_jac.mat');
-    miaow101 = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/g101_jac.mat');
-    miaow102 = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/g102_jac.mat');
-    miaow = miaow1;
+    if iTRPorSTD == 49
+      miaow1   = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/g1_jac.mat');
+      miaow101 = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/g101_jac.mat');
+      miaow102 = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/g102_jac.mat');
+      miaow = miaow1;
       miaow.jout = miaow1.jout + miaow101.jout + miaow102.jout;
-    iWV = 04:23; %% anomaly tile spectra
-    figure(4); plot(f(inds),sum(m_ts_jac(inds,iWV),2),'.-',miaow.fout,sum(miaow.jout')*0.01); title('Should be WV jac'); xlim([640 1340]); grid; grid minor
+    elseif iTRPorSTD == 1
+      miaow1   = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/TRP/g1_jac_new.mat');
+      miaow101 = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/TRP/g101_jac_new.mat');
+      miaow102 = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/TRP/g102_jac_new.mat');
+      miaow103 = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/TRP/g103_jac_new.mat');
+      miaow = miaow1;
+      miaow.jout = miaow1.jout + miaow101.jout + miaow102.jout + miaow103.jout;
+    end
+    iWV = (01:20)+4; %% anomaly tile spectra
+    figure(5); plot(f(inds),sum(m_ts_jac(inds,iWV),2),'.-',miaow.fout,sum(miaow.jout')*0.01); title('Should be WV jac'); xlim([640 1340]); grid; grid minor
       hl = legend('input jac','from STD/g1\_jac.mat','location','best','fontsize',10);
-  
-    miaow   = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/temp_jac.mat');
-    iTz = 20+(04:23); %% anomaly tile spectra
-    figure(5); plot(f(inds),sum(m_ts_jac(inds,iTz),2),'.-',miaow.fout,sum(miaow.jtemp')*0.01); title('Should be T jac'); xlim([640 1340]); grid; grid minor
+
+    if iTRPorSTD == 49  
+      miaow   = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/temp_jac.mat');
+    elseif iTRPorSTD == 1  
+      miaow   = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/TRP/temp_jac_new.mat');
+    end
+    iTz = 20+iWV; %% anomaly tile spectra
+    figure(6); plot(f(inds),sum(m_ts_jac(inds,iTz),2),'.-',miaow.fout,sum(miaow.jtemp')*0.01); title('Should be T jac'); xlim([640 1340]); grid; grid minor
       hl = legend('input jac','from STD/temp\_jac.mat','location','best','fontsize',10);
   
-    miaow   = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/g3_jac.mat');
-    iO3 = 40+(04:23); %% anomaly tile spectra
-    figure(6); plot(f(inds),sum(m_ts_jac(inds,iO3),2),'.-',miaow.fout,sum(miaow.jout')*0.01); title('Should be O3 jac'); xlim([640 1340]); grid; grid minor
+    if iTRPorSTD == 49  
+      miaow   = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/STD/g3_jac.mat');
+    elseif iTRPorSTD == 1
+      miaow   = load('/asl/s1/sergio/AIRSPRODUCTS_JACOBIANS/TRP/g3_jac.mat');
+    end
+    iO3 = 40+iWV; %% anomaly tile spectra
+    figure(7); plot(f(inds),sum(m_ts_jac(inds,iO3),2),'.-',miaow.fout,sum(miaow.jout')*0.01); title('Should be O3 jac'); xlim([640 1340]); grid; grid minor
       hl = legend('input jac','from STD/g3\_jac.mat','location','best','fontsize',10);
   pause(0.1)
   end
@@ -367,11 +406,11 @@ for ii = 1 : driver.oem.nloop
     dx2 = k'/inv_seF * deltan - r*(xn-xb);
   end
   deltax = dx1*dx2;
-  figure(4); plot(diag(dx1)); colorbar; title('log10(dx1)');
-  figure(5); imagesc(log10(abs(dx1))); colorbar; title('dx1');
-  figure(6); plot(dx2);                 title('dx2');
-  figure(7); plot(deltan);              title('deltaBT to fit')
-  figure(8); plot(deltax);              title('deltax')
+  figure(4); plot(diag(dx1)); colorbar;                              title('log10(dx1)');
+  figure(5); imagesc(log10(abs(dx1))); colorbar;                     title('dx1');
+  figure(6); plot(dx2);                                              title('dx2');
+  figure(7); plot(f(inds),deltan); plotaxis2;                        title('deltaBT to fit')
+  figure(8); plot(deltax.*driver.qrenorm'); plotaxis2; grid minor;   title('deltax.*qrenorm')
 
   iDebug = +1;
   iDebug = -1;
@@ -406,9 +445,19 @@ for ii = 1 : driver.oem.nloop
 
   rodgers_rate = real(xn + deltax);
   figure(9); plot(1:length(xn),xn,'ko-',1:length(xn),deltax,'bx-',1:length(xn),real(xn+deltax),'r.-')
+  figure(9); plot(1:length(xn),xn.*driver.qrenorm','ko-',1:length(xn),deltax.*driver.qrenorm','bx-',1:length(xn),real(xn+deltax).*driver.qrenorm','r.-')
+    plotaxis2;   xlim([0 max(driver.jacobian.scalar_i)+1])
+  hl = legend('orig xn','delta xn','new xn = (orig+delta)','location','best','fontsize',8); 
+
+  ah0 = xn.*driver.qrenorm';
+  dah = deltax.*driver.qrenorm';
+  ah1 = real(xn+deltax).*driver.qrenorm';
+  figure(8); 
+    subplot(131); plot(ah0(driver.jacobian.water_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.water_i),1:length(driver.jacobian.water_i),'r'); title('WV'); set(gca,'ydir','reverse')
+    subplot(132); plot(ah0(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'r');  title('T'); set(gca,'ydir','reverse')
+    subplot(133); plot(ah0(driver.jacobian.ozone_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.ozone_i),1:length(driver.jacobian.water_i),'r'); title('O3'); set(gca,'ydir','reverse')
 
   xn = rodgers_rate;
-
   xsave(ii,:) = rodgers_rate;
 
   if ii <= driver.oem.nloop
@@ -418,10 +467,13 @@ for ii = 1 : driver.oem.nloop
     xn = rodgers_rate;
 
     % Form the computed rates; also see lines 108-121 of oem_lls.m
-    thefitr = zeros(1,length(driver.rateset.rates));
+    thefitr      = zeros(1,length(driver.rateset.rates));
+    thefitrdelta = zeros(1,length(driver.rateset.rates));
     for ix = 1 : length(xn)
-      thefitr = thefitr + xn(ix)*m_ts_jac(:,ix)';
+      thefitr      = thefitr + xn(ix)*m_ts_jac(:,ix)';
+      thefitrdelta = thefitrdelta + deltax(ix)*m_ts_jac(:,ix)';
     end
+    figure(7); plot(f(inds),deltan,'c',f(inds),thefitrdelta(inds),'r','linewidth',2); plotaxis2; title('(c) deltaN to be fitted (r) fit')
 
     iDebugNLOOP = +1;
     iDebugNLOOP = -1;
@@ -440,34 +492,49 @@ for ii = 1 : driver.oem.nloop
       figure(3); plot(1:length(xb),xnIN,'b.-',1:length(xb),xn,'ro-',1:length(xb),xb,'kx-'); grid; title(['ParamsN Loop ' num2str(ii) ]);
       figure(4); plot(1:length(xb),deltax,'bo-'); grid; title(['deltax Loop ' num2str(ii) ]); 
 
-      figure(5); clf; plot(1:length(deltan),driver.rateset.rates(inds),'b',1:length(deltan),deltan0,'r','linewidth',2); grid
+      figure(5); clf; plot(f(inds),driver.rateset.rates(inds),'b',f(inds),deltan0,'r','linewidth',2); grid
       legend('input data Y','deltan0 = Y-f(x0)','location','best');
 
-       figure(7); plot(deltan); grid; figure(8); plot(dx2); grid; sum(xn-xb)
+       figure(7); plot(f(inds),deltan); grid; figure(8); plot(dx2); grid; sum(xn-xb)
 
        [xnbefore(1:5) deltax(1:5) xn(1:5)]
       disp('ret'); pause
     end
 
     % Compute chisqr, and new deltan
-    deltan = driver.rateset.rates - thefitr';           %% till  Jan 2021
-    deltan = (driver.rateset.rates - fx00) - thefitr';  %% after Feb 2021
-    deltan = deltan(inds);
-    chisqr(ii) = nansum(deltan'.*deltan');
+    deltan  = driver.rateset.rates - thefitr';                             %% till  Jan 2021
+    ddeltan = (driver.rateset.rates - tracegas_offset00) - thefitrdelta';  %% after Feb 2021
+    deltan  = deltan(inds);
+    ddeltan = ddeltan(inds);
+    chisqr(ii) = nansum(ddeltan'.*ddeltan');
    
-    if driver.oem.doplots
-      clf
-      plot(1:length(deltan),deltanIN,1:length(deltan),deltan,'r'); 
-      title(['obs - fit at iteration ' num2str(ii)]); pause(0.1)
+    iYes = 1
+    if driver.oem.doplots > 0 | iYes > 0
+      figure(10); clf
+      figure(10); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'c.-',f(inds),thefitrdelta(inds),'k.-',f(inds),ddeltan,'r.-','linewidth',2); plotaxis2;
+        hl = legend('input rates','signal''= to fit after subtracting trace gas jacs','fit','signal''-fit','location','best','fontsize',8);
+        title(['rodgers.m : ADJ SIGNAL \newline obs - fit at iteration ' num2str(ii)]); pause(0.1)
+
+      figure(11); clf
+      figure(11); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),thefitr(inds),'k.-',f(inds),deltan,'r.-','linewidth',2); plotaxis2;
+        hl = legend('input rates','fit','signal-fit','location','best','fontsize',8);
+        title(['rodgers.m : RAW SIGNAL \newline obs - fit at iteration ' num2str(ii)]); pause(0.1)
+      %plot(f(inds),deltanIN,f(inds),deltan,'r'); 
+      %title(['obs - fit at iteration ' num2str(ii)]); pause(0.1)
     end
     xnIN = xn;
   end
 end
 
-figure(10); plot(1:length(deltan),driver.rateset.rates(inds),'b',1:length(deltan),thefitr(inds),'r',1:length(deltan),deltan,'k'); 
-figure(10); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),driver.rateset.rates(inds) - fx00(inds),'k.-',f(inds),thefitr(inds),'r.-',f(inds),deltan,'g.-','linewidth',2); plotaxis2;
-  hl = legend('signal IN','signal IN after adding on trace gas jacs','fit','residual (black-red)','location','best','fontsize',8);
-      title(['rodgers.m : after fitting : \newline obs - fit at iteration ' num2str(ii)]); pause(0.1)
+figure(10); clf
+figure(10); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'c.-',f(inds),thefitrdelta(inds),'k.-',f(inds),ddeltan,'r.-','linewidth',2); plotaxis2;
+        hl = legend('input rates','signal''= to fit after subtracting trace gas jacs','fit','signal''-fit','location','best','fontsize',8);
+      title(['rodgers.m : ADJ SIGNAL \newline obs - fit at iteration ' num2str(ii)]); pause(0.1)
+
+figure(11); clf
+figure(11); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),thefitr(inds),'k.-',f(inds),deltan,'r.-','linewidth',2); plotaxis2;
+        hl = legend('input rates','fit','signal-fit','location','best','fontsize',8);
+        title(['rodgers.m : RAW SIGNAL \newline obs - fit at iteration ' num2str(ii)]); pause(0.1)
 
 %disp('rodgers.m 2'); keyboard_nowindow
 
@@ -635,3 +702,9 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+ff1 = 640; ff2 = 840;
+ff1 = 640; ff2 = 1640;
+figure(10); axis([ff1 ff2 -2 +2]); grid minor; 
+figure(1); axis([ff1 ff2 -2 +2]);  grid minor;
+figure(7); axis([ff1 ff2 -2 +2]);  grid minor; 
+figure(11); axis([ff1 ff2 -2 +2]); grid minor;
