@@ -107,15 +107,16 @@ end;
 if mgah == 1 | ngah == 1
   i_e0_MatrOrArray = -1;     %% e0 = obs spectral uncertainty, is array
 else
-  i_e0_MatrOrArray = -1;     %% e0 = obs spectral uncertainty, is matrix
+  i_e0_MatrOrArray = +1;     %% e0 = obs spectral uncertainty, is matrix
 end
 
 if i_e0_MatrOrArray < 0
-  %% orig code
+  %% orig code, send in vector of spectral uncertainty ... so turn it into matrix
   se = e0 + fme;  
   se = se.*se;
   if isfield(aux,'all_obscov')
     %% this is in ../AIRS_new_random_scan_Aug2018/strow_override_defaults_latbins_AIRS.m
+    disp('using aux.all_obscov')
     se = aux.all_obscov;
   end
 elseif i_e0_MatrOrArray > 0
@@ -157,9 +158,11 @@ if iAddXB > 0
   for iy = 1 : length(xn)
      tracegas_offset = tracegas_offset + (xn(iy)*m_ts_jac(:,iy));
   end
+  iJUNK = [driver.jacobian.scalar_i  driver.jacobian.water_i(1) driver.jacobian.temp_i(1) driver.jacobian.ozone_i(1)];
+  disp('   scalar/WV/T/O3 xb');
   disp('   xn    |qrenorm   |  xn.*qrenorm')
   disp('------------------------------------')
-  fprintf(1,'%8.4f | %8.4f | %8.4f \n', [xn(1:10)   driver.qrenorm(1:10)'  xn(1:10).*driver.qrenorm(1:10)']')
+  fprintf(1,'%8.4f | %8.4f | %8.4f \n', [xn(iJUNK)   driver.qrenorm(iJUNK)'  xn(iJUNK).*driver.qrenorm(iJUNK)']')
   disp('------------------------------------')
 
   tracegas_offset00 = tracegas_offset;
@@ -184,13 +187,33 @@ if length(driver.rateset.rates) == 2645
   f = instr_chans2645;
 elseif length(driver.rateset.rates) == 2378
   f = instr_chans;
+elseif length(driver.rateset.rates) == 1305
+  f = instr_chans('cris1305');
 else
-  error('oooorrr is this AIRS 2378 or 245?')
+  error('oooorrr is this AIRS 2378 or 2465 or Cris 1305?')
 end
+
+figure(12); plot(1:length(tracegas_offset),tracegas_offset,1:length(tracegas_offset),m_ts_jac(:,1:3)); hl = legend('tracegas offset','CO2 jac','N2O jac','CH4 jac','location','best','fontsize',10);
+
 figure(1); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),tracegas_offset(inds),'g.-',f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'c.-','linewidth',2); 
   plotaxis2; title('in oem\_pkg/rodgers.m : nyuk'); 
   hl = legend('input rates','trace gas jacs offset','signal''= to fit b-g','location','best');
 
+[mmm,nnn] = size(m_ts_jac);
+if nnn == 66
+  wahCO2_ST = m_ts_jac(inds,[1 6]);
+  wahWV = m_ts_jac(inds,(1:20)+6+00);
+  wahT  = m_ts_jac(inds,(1:20)+6+20);
+  wahO3 = m_ts_jac(inds,(1:20)+6+40);
+  figure(1); plot(f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'kx-',f(inds),sum(wahWV'),f(inds),sum(wahT'),f(inds),sum(wahO3'),f(inds),wahCO2_ST(:,1),f(inds),wahCO2_ST(:,2),'linewidth',2); 
+    plotaxis2; title('in oem\_pkg/rodgers.m : nyuk'); 
+    hl = legend('signal''= to fit b-g','WVjac','Tjac','O3jac','CO2jac','STjac','location','best','fontsize',10);
+  figure(1); plot(f(inds),sum(wahWV'),f(inds),sum(wahT'),f(inds),sum(wahO3'),f(inds),wahCO2_ST(:,1),f(inds),wahCO2_ST(:,2),'linewidth',2); 
+    plotaxis2; title('in oem\_pkg/rodgers.m : nyuk'); 
+    hl = legend('WVjac','Tjac','O3jac','CO2jac','STjac','location','best','fontsize',10);
+
+end
+  
 if iAddXB > 0
   %indsy791 = find(f >= 790,1); indsy791 = sort([inds; (indsy791-25:indsy791+25)']);
 
@@ -508,8 +531,8 @@ for ii = 1 : driver.oem.nloop
     ddeltan = ddeltan(inds);
     chisqr(ii) = nansum(ddeltan'.*ddeltan');
    
-    iYes = 1
-    if driver.oem.doplots > 0 | iYes > 0
+    iYesPlot = 1;    
+    if driver.oem.doplots > 0 | iYesPlot > 0
       figure(10); clf
       figure(10); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'c.-',f(inds),thefitrdelta(inds),'k.-',f(inds),ddeltan,'r.-','linewidth',2); plotaxis2;
         hl = legend('input rates','signal''= to fit after subtracting trace gas jacs','fit','signal''-fit','location','best','fontsize',8);
@@ -704,7 +727,12 @@ end
 
 ff1 = 640; ff2 = 840;
 ff1 = 640; ff2 = 1640;
-figure(10); axis([ff1 ff2 -2 +2]); grid minor; 
-figure(1); axis([ff1 ff2 -2 +2]);  grid minor;
-figure(7); axis([ff1 ff2 -2 +2]);  grid minor; 
-figure(11); axis([ff1 ff2 -2 +2]); grid minor;
+%figure(10); axis([ff1 ff2 -0.2 +0.2]); grid minor; 
+%figure(1);  axis([ff1 ff2 -0.2 +0.2]);  grid minor;
+%figure(7);  axis([ff1 ff2 -0.2 +0.2]);  grid minor; 
+%figure(11); axis([ff1 ff2 -0.2 +0.2]); grid minor;
+figure(10); xlim([ff1 ff2]);
+figure(1);  xlim([ff1 ff2]);
+figure(7);  xlim([ff1 ff2]);
+figure(11); xlim([ff1 ff2]);
+

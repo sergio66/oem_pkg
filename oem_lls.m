@@ -44,7 +44,13 @@ if driver.oem.dofit
   thefitr = zeros(1,length(driver.rateset.rates));
   for ix = 1 : length(coeffsr)
     thefitr = thefitr + coeffsr(ix)*aux.m_ts_jac(:,ix)';
+    %if length(intersect(ix,[7 27 47])) == 1
+    %  %% separate out rtace gas, WV, T, O3
+    %  disp('-----------')
+    %end
+    %fprintf(1,'oem_lls 1231 cm-1 chID 1520  ix,truecoeff/qrenorm,truejac*qrenorm,trueproduct : %3i %10.6f %10.6e %10.6e \n',ix,coeffsr(ix),aux.m_ts_jac(1520,ix),coeffsr(ix)*aux.m_ts_jac(1520,ix))
   end
+  %woo = aux.m_ts_jac; whos woo thefitr
 
   inds     = driver.jacobian.chanset;
   % Compute chisqr
