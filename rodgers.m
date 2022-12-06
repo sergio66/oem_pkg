@@ -1,4 +1,4 @@
-function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,ak_temp,ak_ozone,bestloop] = rodgers(driver,aux)
+function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,ak_temp,ak_ozone,bestloop,deltan00] = rodgers(driver,aux)
 
 %---------------------------------------------------------------------------
 % OEM retrieval for RATES so y(x) = sum(rates(i) * jac(:,i)), to compare to yIN
@@ -97,6 +97,8 @@ se_errors.fmerrors = ones(sizer) * driver.oem.sarta_error;
 
 %% get 2378x2378 spectral cov matrix
 wah = driver.rateset.unc_rates; [mgah,ngah] = size(wah);
+%size(driver.rateset.unc_rates)
+%size(inds)
 if mgah == 1 | ngah == 1
   e0 = diag(driver.rateset.unc_rates(inds));
 else
@@ -160,7 +162,7 @@ if iAddXB > 0
   end
   iJUNK = [driver.jacobian.scalar_i  driver.jacobian.water_i(1) driver.jacobian.temp_i(1) driver.jacobian.ozone_i(1)];
   disp('   scalar/WV/T/O3 xb');
-  disp('   xn    |qrenorm   |  xn.*qrenorm')
+  disp('   xb    |qrenorm   |  xb.*qrenorm')
   disp('------------------------------------')
   fprintf(1,'%8.4f | %8.4f | %8.4f \n', [xn(iJUNK)   driver.qrenorm(iJUNK)'  xn(iJUNK).*driver.qrenorm(iJUNK)']')
   disp('------------------------------------')
@@ -497,6 +499,22 @@ for ii = 1 : driver.oem.nloop
       thefitrdelta = thefitrdelta + deltax(ix)*m_ts_jac(:,ix)';
     end
     figure(7); plot(f(inds),deltan,'c',f(inds),thefitrdelta(inds),'r','linewidth',2); plotaxis2; title('(c) deltaN to be fitted (r) fit')
+    [~,numlay] = size(k);
+    numlay = (numlay-6)/3;
+
+    figure(8); clf; plot(f(inds),deltan,'k.-',f(inds),k(:,1:6),'linewidth',2);
+      hl = legend('rate','CO2','N2O','CH4','CFC11','CFC12','stemp','location','best','fontsize',10);
+
+    figure(9); clf; plot(f(inds),deltan,'k.-',...
+                         f(inds),sum(k(:,6+0*numlay+(1:numlay)),2),f(inds),sum(k(:,6+1*numlay+(1:numlay)),2),f(inds),sum(k(:,6+2*numlay+(1:numlay)),2),'linewidth',2)
+      hl = legend('rate','colWV','colT','colO3','location','best','fontsize',10);
+
+    figure(10); clf; plot(f(inds),deltan,'k.-',f(inds),k(:,1:6),...
+                         f(inds),sum(k(:,6+0*numlay+(1:numlay)),2),f(inds),sum(k(:,6+1*numlay+(1:numlay)),2),f(inds),sum(k(:,6+2*numlay+(1:numlay)),2),'linewidth',2)
+      hl = legend('rate','CO2','N2O','CH4','CFC11','CFC12','stemp','colWV','colT','colO3','location','best','fontsize',10);
+
+% keyboard_nowindow
+    grid;
 
     iDebugNLOOP = +1;
     iDebugNLOOP = -1;
