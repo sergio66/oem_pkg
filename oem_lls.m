@@ -19,7 +19,13 @@ end
 if driver.oem.dofit
 
   % Do the OEM retrieval
-  [rodgers_rate,errorx,dofs,cdofs,gain,kern,r,se,inv_se,se_errors,kern_water,kern_temp,kern_ozone,bestloop,deltan00] = rodgers(driver,aux);
+  if driver.iaSequential(1) == -1 & length(driver.iaSequential) == 1
+    %% default ie do all geophysical parameters in one massive gulp
+    [rodgers_rate,errorx,dofs,cdofs,gain,kern,r,se,inv_se,se_errors,kern_water,kern_temp,kern_ozone,bestloop,deltan00] = rodgers(driver,aux);
+  else
+    %% do geophysical params sequentially 
+    [rodgers_rate,errorx,dofs,cdofs,gain,kern,r,se,inv_se,se_errors,kern_water,kern_temp,kern_ozone,bestloop,deltan00] = rodgers_sequential(driver,aux);
+  end
 
   % Save terms used in the Se error matrix
   driver.oem.forwardmodel_errors = se_errors.fmerrors;
