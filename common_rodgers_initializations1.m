@@ -115,7 +115,7 @@ k = m_ts_jac(inds,:);
 [mm,nn] = size(k);
 
 iAddXB = -1; %% new, does this really makes more sense see eg anomaly_0dayavg_resultsXloop3try2?????
-iAddXB = +1; %% orig, wierd but I think it is ok as you need delta0 = obs - tracegas_offset = obs-f(x0) = obs - f(xb)
+iAddXB = +1; %% orig, wierd but I think it is ok as you need raBTdelta0 = obs - tracegas_offset = obs-f(x0) = obs - f(xb)
 if iAddXB > 0
   nyuk = find(abs(xn) > eps);
   %[nyuk xn(nyuk)]
@@ -132,15 +132,15 @@ if iAddXB > 0
   disp('------------------------------------')
 
   tracegas_offset00 = tracegas_offset;
-  deltan00 = driver.rateset.rates - tracegas_offset00;    %%% << this is what we are fitting, all 2645 chans >>
-  deltan   = deltan00(inds);                              %%% << this is what we are fitting, strow selected ~500 chans >>
-  deltan0  = deltan;
+  raBTdeltan00 = driver.rateset.rates - tracegas_offset00;    %%% << this is what we are fitting, all 2645 chans >>
+  raBTdeltan   = raBTdeltan00(inds);                              %%% << this is what we are fitting, strow selected ~500 chans >>
+  raBTdeltan0  = raBTdeltan;
 else
   tracegas_offset = zeros(size(driver.rateset.rates));
   tracegas_offset00 = tracegas_offset;
-  deltan00 = driver.rateset.rates - tracegas_offset00;    %%% << this is what we are fitting, all chans >>
-  deltan   = deltan00(inds);                 %%% << this is what we are fitting, selected chans >>
-  deltan0  = deltan;
+  raBTdeltan00 = driver.rateset.rates - tracegas_offset00;    %%% << this is what we are fitting, all chans >>
+  raBTdeltan   = raBTdeltan00(inds);                 %%% << this is what we are fitting, selected chans >>
+  raBTdeltan0  = raBTdeltan;
 end
 
 % hdffile = '/home/sergio/MATLABCODE/airs_l1c_srf_tables_lls_20181205.hdf';   % what he gave in Dec 2018

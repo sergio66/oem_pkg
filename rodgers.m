@@ -1,4 +1,4 @@
-function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,ak_temp,ak_ozone,bestloop,deltan00] = rodgers(driver,aux)
+function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,ak_temp,ak_ozone,bestloop,raBTdeltan00] = rodgers(driver,aux)
 
 %---------------------------------------------------------------------------
 % OEM retrieval for RATES so y(x) = sum(rates(i) * jac(:,i)), to compare to yIN
@@ -34,6 +34,7 @@ function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,
 %   inv_se             = actual channel inverse covariance matrix used
 %   se_errors          = actual channel uncertainties used
 %   bestloop           = iteration number where minimum chisqr was found; the oem params saved at this point
+%   raBTdeltan00       = ratesIN - jac*tracegas settings (spectral BT rate to be fitted)
 %
 % DO ALL GEOPHYSICAL VARS in ONE GULP
 %---------------------------------------------------------------------------
@@ -47,10 +48,12 @@ get_inv_se_rcov
 %---------------------------------------------------------------------------
 
 %whos r k inv_se
-chisqr0 = nansum(deltan'.*deltan');
+chisqr0 = nansum(raBTdeltan'.*raBTdeltan');
 
 %whos rcov rc r k inv_se
 %disp('rodgers.m 1'); keyboard_nowindow
+
+raBTdeltaIterate(:,1) = raBTdeltan;
 
 for ii = 1 : driver.oem.nloop
   % Do the retrieval inversion
@@ -84,15 +87,15 @@ for ii = 1 : driver.oem.nloop
     dx1  = inverse_minimum_eigenvalue_matrix_optim(dx1,kmaxrange,sigminrange,'dx1');
   end
   if invtype ~= 3
-    dx2 = k' * inv_se * deltan - r*(xn-xb);
+    dx2 = k' * inv_se * raBTdeltan - r*(xn-xb);
   elseif invtype == 3
-    dx2 = k'/inv_seF * deltan - r*(xn-xb);
+    dx2 = k'/inv_seF * raBTdeltan - r*(xn-xb);
   end
   deltax = dx1*dx2;
   figure(4); plot(diag(dx1)); colorbar;                              title('log10(dx1)');
   figure(5); imagesc(log10(abs(dx1))); colorbar;                     title('dx1');
   figure(6); plot(dx2);                                              title('dx2');
-  figure(7); plot(f(inds),deltan); plotaxis2;                        title('deltaBT to fit')
+  figure(7); plot(f(inds),raBTdeltan); plotaxis2;                    title('deltaBT to fit')
   figure(8); plot(deltax.*driver.qrenorm'); plotaxis2; grid minor;   title('deltax.*qrenorm')
 
   iDebug = +1;
@@ -104,8 +107,8 @@ for ii = 1 : driver.oem.nloop
     figure(1); plot(f,k(:,1:5)); grid
 %  figure(1); plot(f,k(:,1)); grid
     figure(2); pcolor(inv_se); shading flat; colorbar
-    figure(2); plot(1:length(deltan),1./sqrt(diag(inv_se)),'b',1:length(deltan),-1./sqrt(diag(inv_se)),'b',1:length(deltan),deltan,'r'); grid
-    figure(2); plot(1:length(deltan),1./sqrt(diag(inv_se)),'b',1:length(deltan),-1./sqrt(diag(inv_se)),'b'); grid
+    figure(2); plot(1:length(raBTdeltan),1./sqrt(diag(inv_se)),'b',1:length(raBTdeltan),-1./sqrt(diag(inv_se)),'b',1:length(raBTdeltan),raBTdeltan,'r'); grid
+    figure(2); plot(1:length(raBTdeltan),1./sqrt(diag(inv_se)),'b',1:length(raBTdeltan),-1./sqrt(diag(inv_se)),'b'); grid
     figure(3); plot(dx2,'o-'); title('dx2'); grid
     figure(4); plot(dx1*dx2,'o-'); title('DX1 * dx2'); grid
 
@@ -141,12 +144,12 @@ for ii = 1 : driver.oem.nloop
     subplot(133); plot(ah0(driver.jacobian.ozone_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.ozone_i),1:length(driver.jacobian.water_i),'r'); title('O3'); set(gca,'ydir','reverse')
 
   xn = rodgers_rate;
-  xsave(ii,:) = rodgers_rate;
+  xsave(ii,:) = rodgers_rate;   %%% <<<< save rodgers_rate and chisqr at iteration ii of driver.oem.loop >>>>
 
   if ii <= driver.oem.nloop
     %% so this will be executed even if driver.oem.nloop == 1
 
-    deltanIN = deltan;
+    raBTdeltanIN = raBTdeltan;
     xn = rodgers_rate;
 
     % Form the computed rates; also see lines 108-121 of oem_lls.m
@@ -156,85 +159,67 @@ for ii = 1 : driver.oem.nloop
       thefitr      = thefitr + xn(ix)*m_ts_jac(:,ix)';
       thefitrdelta = thefitrdelta + deltax(ix)*m_ts_jac(:,ix)';
     end
-    figure(7); plot(f(inds),deltan,'c',f(inds),thefitrdelta(inds),'r','linewidth',2); plotaxis2; title('(c) deltaN to be fitted (r) fit')
+    figure(7); plot(f(inds),raBTdeltan,'c',f(inds),thefitrdelta(inds),'r','linewidth',2); plotaxis2; title('(c) raBTdeltaN to be fitted (r) fit')
     [~,numlay] = size(k);
     numlay = (numlay-6)/3;
 
-    figure(8); clf; plot(f(inds),deltan,'k.-',f(inds),k(:,1:6),'linewidth',2);
+    figure(8); clf; plot(f(inds),raBTdeltan,'k.-',f(inds),k(:,1:6),'linewidth',2);
       hl = legend('rate','CO2','N2O','CH4','CFC11','CFC12','stemp','location','best','fontsize',10);
 
-    figure(9); clf; plot(f(inds),deltan,'k.-',...
+    figure(9); clf; plot(f(inds),raBTdeltan,'k.-',...
                          f(inds),sum(k(:,6+0*numlay+(1:numlay)),2),f(inds),sum(k(:,6+1*numlay+(1:numlay)),2),f(inds),sum(k(:,6+2*numlay+(1:numlay)),2),'linewidth',2)
       hl = legend('rate','colWV','colT','colO3','location','best','fontsize',10);
 
-    figure(10); clf; plot(f(inds),deltan,'k.-',f(inds),k(:,1:6),...
+    figure(10); clf; plot(f(inds),raBTdeltan,'k.-',f(inds),k(:,1:6),...
                          f(inds),sum(k(:,6+0*numlay+(1:numlay)),2),f(inds),sum(k(:,6+1*numlay+(1:numlay)),2),f(inds),sum(k(:,6+2*numlay+(1:numlay)),2),'linewidth',2)
       hl = legend('rate','CO2','N2O','CH4','CFC11','CFC12','stemp','colWV','colT','colO3','location','best','fontsize',10);
     grid;
 
-    iDebugNLOOP = +1;
-    iDebugNLOOP = -1;
-    if iDebugNLOOP > 0
-      hdffile = '/home/sergio/MATLABCODE/airs_l1c_srf_tables_lls_20181205.hdf';   % what he gave in Dec 2018
-      vchan2834 = hdfread(hdffile,'freq');
-      f = vchan2834;
-      load sarta_chans_for_l1c.mat
-      f = f(ichan);
+    % Compute chisqr, and new raBTdeltan
+    raBTdeltan = driver.rateset.rates - thefitr';                             %% till  Jan 2021
+    raBTdeltan = raBTdeltan(inds);
 
-      figure(1); plot(f(inds),driver.rateset.rates(inds),'k.-',f(inds),deltan0,'kx-',f(inds),deltan,'b.-',f(inds),thefitr(inds),'g',...
-		    f(inds),driver.rateset.rates(inds)-thefitr(inds)','r'); grid; title(['Rates Loop ' num2str(ii) ]);
-        hl = legend('orig data','orig residual Y-f(x0)','residual at start of Nth iteration Y-f(xn-1)','f(xn)','residual still to fit','location','best');
-      figure(2); plot(f(inds),driver.rateset.rates(inds)-thefitr(inds)','b',f(inds),sqrt(diag(se)),'k',f(inds),-sqrt(diag(se)),'k'); 
-                 grid; title(['fit this d(spectra) next after Loop ' num2str(ii) ]);
-      figure(3); plot(1:length(xb),xnIN,'b.-',1:length(xb),xn,'ro-',1:length(xb),xb,'kx-'); grid; title(['ParamsN Loop ' num2str(ii) ]);
-      figure(4); plot(1:length(xb),deltax,'bo-'); grid; title(['deltax Loop ' num2str(ii) ]); 
+    raBTzeltan = (driver.rateset.rates - tracegas_offset00) - thefitrdelta';  %% after Feb 2021
+    raBTzeltan = raBTzeltan(inds);
 
-      figure(5); clf; plot(f(inds),driver.rateset.rates(inds),'b',f(inds),deltan0,'r','linewidth',2); grid
-      legend('input data Y','deltan0 = Y-f(x0)','location','best');
-
-       figure(7); plot(f(inds),deltan); grid; figure(8); plot(dx2); grid; sum(xn-xb)
-
-       [xnbefore(1:5) deltax(1:5) xn(1:5)]
-      disp('ret'); pause
-    end
-
-    % Compute chisqr, and new deltan
-    deltan = driver.rateset.rates - thefitr';                             %% till  Jan 2021
-    zeltan = (driver.rateset.rates - tracegas_offset00) - thefitrdelta';  %% after Feb 2021
-    deltan = deltan(inds);
-    zeltan = zeltan(inds);
-    chisqr(ii) = nansum(zeltan'.*zeltan');
+    chisqr(ii) = nansum(raBTzeltan'.*raBTzeltan');     %%% <<<< save rodgers_rate and chisqr at iteration ii of driver.oem.loop >>>>
    
     iYesPlot = 1;    
     if driver.oem.doplots > 0 | iYesPlot > 0
       figure(10); clf
-      figure(10); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'c.-',f(inds),thefitrdelta(inds),'k.-',f(inds),zeltan,'r.-','linewidth',2); plotaxis2;
+      figure(10); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'c.-',f(inds),thefitrdelta(inds),'k.-',f(inds),raBTzeltan,'r.-','linewidth',2); plotaxis2;
         hl = legend('input rates','signal''= to fit after subtracting trace gas jacs','fit','signal''-fit','location','best','fontsize',8);
         title(['rodgers.m : ADJ SIGNAL \newline obs - fit at iteration ' num2str(ii)]); pause(0.1)
 
       figure(11); clf
-      figure(11); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),thefitr(inds),'k.-',f(inds),deltan,'r.-','linewidth',2); plotaxis2;
+      figure(11); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),thefitr(inds),'k.-',f(inds),raBTdeltan,'r.-','linewidth',2); plotaxis2;
         hl = legend('input rates','fit','signal-fit','location','best','fontsize',8);
         title(['rodgers.m : RAW SIGNAL \newline obs - fit at iteration ' num2str(ii)]); pause(0.1)
-      %plot(f(inds),deltanIN,f(inds),deltan,'r'); 
+      %plot(f(inds),raBTdeltanIN,f(inds),raBTdeltan,'r'); 
       %title(['obs - fit at iteration ' num2str(ii)]); pause(0.1)
     end
     xnIN = xn;
   end
 end
 
+raBTdeltaIterate(:,2) = raBTdeltan;
+fuse = f(inds);
+whos fuse raaRaBTdeltaIterate
+figure(24); clf; plot(fuse,raBTdeltaIterate,'linewidth',2); plotaxis2; hl = legend(num2str([0; -1]),'location','best','fontsize',8); title('raBTdelta(obs-cal)')
+    pause(0.1)
+
 figure(10); clf
-figure(10); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'c.-',f(inds),thefitrdelta(inds),'k.-',f(inds),zeltan,'r.-','linewidth',2); plotaxis2;
+figure(10); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'c.-',f(inds),thefitrdelta(inds),'k.-',f(inds),raBTzeltan,'r.-','linewidth',2); plotaxis2;
         hl = legend('input rates','signal''= to fit after subtracting trace gas jacs','fit','signal''-fit','location','best','fontsize',8);
       title(['rodgers.m : ADJ SIGNAL \newline obs - fit at iteration ' num2str(ii)]); pause(0.1)
 
 figure(11); clf
-figure(11); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),thefitr(inds),'k.-',f(inds),deltan,'r.-','linewidth',2); plotaxis2;
+figure(11); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),thefitr(inds),'k.-',f(inds),raBTdeltan,'r.-','linewidth',2); plotaxis2;
         hl = legend('input rates','fit','signal-fit','location','best','fontsize',8);
         title(['rodgers.m : RAW SIGNAL \newline obs - fit at iteration ' num2str(ii)]); pause(0.1)
 
 %[xb(1:10) xn(1:10)]
-%figure(11); title('One gulp, one stage'); disp('rodgers.m 2'); keyboard_nowindow
+%figure(11); title('One gulp, one stage'); ylim([-1 +1]*0.025); disp('rodgers.m 2'); keyboard_nowindow
 
 bestloop = find(chisqr ==  min(chisqr),1);
 fprintf(1,'bestloop (lowest chisqr) occured at iteration %3i \n',bestloop)

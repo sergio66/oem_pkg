@@ -1,4 +1,4 @@
-function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,ak_temp,ak_ozone,bestloop,deltan00] = rodgers(driver,aux)
+function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,ak_temp,ak_ozone,bestloop,raBTdeltan00] = rodgers(driver,aux)
 
 %---------------------------------------------------------------------------
 % OEM retrieval for RATES so y(x) = sum(rates(i) * jac(:,i)), to compare to yIN
@@ -34,6 +34,7 @@ function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,
 %   inv_se             = actual channel inverse covariance matrix used
 %   se_errors          = actual channel uncertainties used
 %   bestloop           = iteration number where minimum chisqr was found; the oem params saved at this point
+%   raBTdeltan00       = ratesIN - jac*tracegas settings (spectral BT rate to be fitted)
 %
 % DO sequential retrieval of GEOPHYSICAL VARS
 %---------------------------------------------------------------------------
@@ -44,20 +45,35 @@ common_rodgers_initializations1
 
 iaSequential = driver.iaSequential;
 
-seSave     = se;
-rcovSave   = driver.oem.cov;
-kSave      = k;
-deltanSave = deltan; %% from common_rodgers_initializatio
-                     %%    deltan00 = driver.rateset.rates - tracegas_offset00;    %%% << this is what we are fitting, all 2645 chans >>
-                     %%    deltan   = deltan00(inds);                              %%% << this is what we are fitting, strow selected ~500 chans >>
-xbSave     = xb;
-xnSave     = xn;
-fSave      = f;
-xsave      = zeros(size(xb));
+iaSequential_orig = iaSequential;
+if iaSequential(end) ~= -1
+  %% need this to do the DOF calcs
+  disp(' ... artificially adding on iSequential = -1 at the end, to do DofF')
+  iaSequential = [iaSequential -1];
+end
+
+seSave         = se;
+rcovSave       = driver.oem.cov;
+kSave          = k;
+xbSave         = xb;
+xnSave         = xn;
+fSave          = f;
+xsave          = zeros(length(iaSequential),driver.oem.nloop,length(xb));
+raBTdeltanSave = raBTdeltan; %% from common_rodgers_initialization, this is strow selected ~500 chans
+                     %%    raBTdeltan00 = driver.rateset.rates - tracegas_offset00;    %%% << this is what we are fitting, all 2645 chans >>
+                     %%    raBTdeltan   = raBTdeltan00(inds);                          %%% << this is what we are fitting, strow selected ~500 chans >>
+
+raBTdeltaIterate(:,1) = raBTdeltanSave;
 
 for iiS = 1 : length(iaSequential)
   iSequential = iaSequential(iiS);
-  fprintf(1,' iiS = %2i of %2i : doing iSequential = %2i \n',iiS,length(iaSequential),iSequential);
+  if iiS <= length(iaSequential_orig)
+    iYesThisIsFine = +1;
+    fprintf(1,' iiS = %2i of %2i : doing iSequential = %2i \n',iiS,length(iaSequential),iSequential);
+  else
+    iYesThisIsFine = -11;
+    fprintf(1,' iiS = %2i of %2i : need DofF so doing extra iSequential = %2i \n',iiS,length(iaSequential),iSequential);
+  end
 
   fuse = f(inds);
 
@@ -78,7 +94,7 @@ for iiS = 1 : length(iaSequential)
     iUseRetrParam = [driver.jacobian.ozone_i];
 
     iUse = find(fuse > 1000 & fuse < 1080);
-    iUseChan = union(iUseChans15,iUseWindow);
+    iUseChan = iUse;
 
   elseif iSequential == 60
     %% 6 um WV(z)
@@ -90,17 +106,19 @@ for iiS = 1 : length(iaSequential)
 
   end
 
-  se = seSave(iUseChan,iUseChan);
-  k = kSave(iUseChan,iUseRetrParam);
-  xn = xnSave(iUseRetrParam);
-  xb = xbSave(iUseRetrParam);
-  deltan = deltanSave(iUseChan);
+  se = seSave(iUseChan,iUseChan);          %% iSequential ~20 params
+  k = kSave(iUseChan,iUseRetrParam);       %% iSequential ~20 params
+  xn = xnSave(iUseRetrParam);              %% iSequential ~20 params
+  xb = xbSave(iUseRetrParam);              %% iSequential ~20 params
+  raBTdeltan = raBTdeltanSave(iUseChan);   %% iSequential ~100 channels
 
   figure(21);
     plot(fuse,driver.rateset.rates(inds),'b.',fuse(iUseChan),driver.rateset.rates(inds(iUseChan)),'r')
 
-  disp('starting iSequential loop [xbSave(1:10) xnSave(1:10) xb(1:10) xn(1:10)]')
-  [xbSave(1:10) xnSave(1:10) xb(1:10) xn(1:10)]
+  disp(' .................... >>>>>>>>>>> -------------------- <<<<<<<<<<<<< .....................')
+  disp('starting iSequential loop physical vars : [xbSave(1:10) xnSave(1:10) xb(1:10) xn(1:10)]')
+  %[xbSave(1:10) xnSave(1:10) xb(1:10) xn(1:10)]
+  [xbSave(1:10).*driver.qrenorm(1:10)' xnSave(1:10).*driver.qrenorm(1:10)' xb(1:10).*driver.qrenorm(iUseRetrParam(1:10))' xn(1:10).*driver.qrenorm(iUseRetrParam(1:10))']
 
   %-------------------------
 
@@ -110,8 +128,9 @@ for iiS = 1 : length(iaSequential)
 
   %-------------------------
   
-  % whos seSave rCovSave kSave deltanSave xbSave fuse iUseChan r k inv_se rcov rc
-  chisqr0 = nansum(deltan'.*deltan');
+  % whos seSave rCovSave kSave raBTdeltanSave xbSave fuse iUseChan r k inv_se rcov rc
+  chisqr0  = nansum(raBTdeltan'.*raBTdeltan');          %% only ~100 iSeuqntial chans
+  xchisqr0 = nansum(raBTdeltanSave'.*raBTdeltanSave');  %% strow ~500 chans
   
   for ii = 1 : driver.oem.nloop
     % Do the retrieval inversion
@@ -145,15 +164,15 @@ for iiS = 1 : length(iaSequential)
       dx1  = inverse_minimum_eigenvalue_matrix_optim(dx1,kmaxrange,sigminrange,'dx1');
     end
     if invtype ~= 3
-      dx2 = k' * inv_se * deltan - r*(xn-xb);
+      dx2 = k' * inv_se * raBTdeltan - r*(xn-xb);
     elseif invtype == 3
-      dx2 = k'/inv_seF * deltan - r*(xn-xb);
+      dx2 = k'/inv_seF * raBTdeltan - r*(xn-xb);
     end
     deltax = dx1*dx2;
     figure(4); plot(diag(dx1)); colorbar;                              title('log10(dx1)');
     figure(5); imagesc(log10(abs(dx1))); colorbar;                     title('dx1');
     figure(6); plot(dx2);                                              title('dx2');
-    figure(7); plot(fuse(iUseChan),deltan); plotaxis2;                 title('deltaBT to fit')
+    figure(7); plot(fuse(iUseChan),raBTdeltan); plotaxis2;             title('raBTdeltaBT to fit')
     figure(8); plot(deltax.*driver.qrenorm(iUseRetrParam)'); plotaxis2; grid minor;   title('deltax.*qrenorm')
   
     iDebug = +1;
@@ -164,8 +183,8 @@ for iiS = 1 : length(iaSequential)
       figure(1); plot(f(inds(iUseChan)),k); grid
       figure(1); plot(f(inds(iUseChan)),k(:,1:5)); grid
       figure(2); pcolor(inv_se); shading flat; colorbar
-      figure(2); plot(1:length(deltan),1./sqrt(diag(inv_se)),'b',1:length(deltan),-1./sqrt(diag(inv_se)),'b',1:length(deltan),deltan,'r'); grid
-      figure(2); plot(1:length(deltan),1./sqrt(diag(inv_se)),'b',1:length(deltan),-1./sqrt(diag(inv_se)),'b'); grid
+      figure(2); plot(1:length(raBTdeltan),1./sqrt(diag(inv_se)),'b',1:length(raBTdeltan),-1./sqrt(diag(inv_se)),'b',1:length(raBTdeltan),raBTdeltan,'r'); grid
+      figure(2); plot(1:length(raBTdeltan),1./sqrt(diag(inv_se)),'b',1:length(raBTdeltan),-1./sqrt(diag(inv_se)),'b'); grid
       figure(3); plot(dx2,'o-'); title('dx2'); grid
       figure(4); plot(dx1*dx2,'o-'); title('DX1 * dx2'); grid  
       figure(5); plot(dx1*dx2,'o-'); title('DX1 * dx2'); axis([0 80 -200 +200]); grid
@@ -208,46 +227,53 @@ for iiS = 1 : length(iaSequential)
     end
 
     xn = rodgers_rate;
-    xsave(ii,iUseRetrParam) = rodgers_rate;
+    xsave(iiS,ii,iUseRetrParam) = rodgers_rate;  %%% <<<< save rodgers_rate and chisqr at iteration ii,iSequential of driver.oem.loop >>>>
   
     if ii <= driver.oem.nloop
       %% so this will be executed even if driver.oem.nloop == 1
   
-      deltanIN = deltan;
+      raBTdeltanIN = raBTdeltan;
       xn = rodgers_rate;
   
       % Form the computed rates; also see lines 108-121 of oem_lls.m
-      thefitr      = zeros(1,length(driver.rateset.rates));
-      thefitrdelta = zeros(1,length(driver.rateset.rates));
+      thefitr      = zeros(1,length(driver.rateset.rates)); %% this uses all params including CO2/N2O/CH4; this uses all params including CO2/N2O/CH4; all 2645 chans
+      thefitrdelta = zeros(1,length(driver.rateset.rates)); %% this just uses the params used in this iSequential round, all 2645 chans DOES NOT USE EG trace gas sometimes, or T(z)/ST sometimes, or WV sometimes , or O3 sometimes
 
       yn = xbSave;
-      yn(iUseRetrParam) = xn; %% this is needed for next iSequential
+      yn(iUseRetrParam) = xn;            %%% this is needed for next iSequential
+      xsave(iiS,ii,:) = yn;              %%% <<<< save rodgers_rate and chisqr at iteration ii,iSequential of driver.oem.loop >>>>
 
       for ix = 1 : length(xbSave)
-        %% this uses all params; this uses all params;
+        %% this uses all params including CO2/N2O/CH4; this uses all params including CO2/N2O/CH4; all 2645 chans
         thefitr = thefitr + yn(ix)*m_ts_jac(:,ix)';
       end
       for ix = 1 : length(deltax)
-        %% this just uses the params used in this iSequential round
+        %% this just uses the params used in this iSequential round, all 2645 chans DOES NOT USE EG trace gas sometimes, or T(z)/ST sometimes, or WV sometimes , or O3 sometimes
         thefitrdelta = thefitrdelta + deltax(ix)*m_ts_jac(:,iUseRetrParam(ix))';
       end
-      figure(7); plot(f(inds(iUseChan)),deltan,'c',f(inds),thefitrdelta(inds),'r','linewidth',2); plotaxis2; title('(c) deltaN to be fitted (r) fit')
+      figure(7); plot(f(inds(iUseChan)),raBTdeltan,'c',f(inds),thefitrdelta(inds),'r','linewidth',2); plotaxis2; title('(c) raBTdeltaN to be fitted (r) fit')
     
-      % Compute chisqr, and new deltan
-      deltanIn   = deltan;
-      deltan = driver.rateset.rates - thefitr';                             %% till  Jan 2021
-      zeltan = (driver.rateset.rates - tracegas_offset00) - thefitrdelta';  %% after Feb 2021
-      zeltan = (driver.rateset.rates - 1*tracegas_offset00) - thefitr';     %% after Jan 2023, remember we are assuming CO2/N2O/CH4 is fixed and all problems are with T/WV so should we take this out??? lets see
-      zeltan = (driver.rateset.rates - 0*tracegas_offset00) - thefitr';     %% after Jan 2023, remember we are assuming CO2/N2O/CH4 is fixed and all problems are with T/WV so should we take this out??? nah
-      deltanSave = deltan(inds);      %% being silly, but works beter? nah cant be
-      deltanSave = zeltan(inds);      %% see eg common_rodgers_initializations1.m, note zeltan is different here than in rodgers.m
-      deltan = deltan(inds);
-      zeltan = zeltan(inds);
-      chisqr(ii) = nansum(zeltan'.*zeltan');
+      % Compute chisqr, and new raBTdeltan
+      raBTdeltanIn   = raBTdeltan;                                              %% iSequential ~100 channels
+
+      raBTdeltan     = driver.rateset.rates - thefitr';                         %% till  Jan 2021, 2645 chans
+      raBTdeltanSave = raBTdeltan(inds);                                        %% being silly, but works beter? nah cant be, strow ~500 chans
+
+      raBTzeltan = (driver.rateset.rates - tracegas_offset00) - thefitrdelta';  %% after Feb 2021, 2645 chans, why take out on;y what you have fitted huh?? silly
+      raBTzeltan = (driver.rateset.rates - 1*tracegas_offset00) - thefitr';     %% after Jan 2023, remember we are assuming CO2/N2O/CH4 is fixed and all problems are with T/WV so should we take this out??? THAT IS UGH silly
+      raBTzeltan = (driver.rateset.rates - 0*tracegas_offset00) - thefitr';     %% after Jan 2023, remember we are assuming CO2/N2O/CH4 is fixed and all problems are with T/WV so should we take this out??? NO, AND IDENTICAL to raBTdeltan
+      raBTdeltanSave = raBTzeltan(inds);                                        %% see eg common_rodgers_initializations1.m, note raBTzeltan is different here than in rodgers.m, 
+
+      raBTdeltaIterate(:,iiS+1) = raBTdeltanSave;                               %% strow ~500 chans
+      xchisqr(iiS,ii)           = nansum(raBTdeltanSave'.*raBTdeltanSave');     %% strow ~500 chans
+
+      raBTdeltan     = raBTdeltan(inds);                                        %% iSequential ~100 chans
+      raBTzeltan     = raBTzeltan(inds);                                        %% iSequential ~100 chans
+      chisqr(iiS,ii) = nansum(raBTzeltan'.*raBTzeltan');                        %% iSequential ~100 chans
      
   figure(22);
-    plot(fuse,driver.rateset.rates(inds),'b-',fuse(iUseChan),driver.rateset.rates(inds(iUseChan)),'k.-',fuse(iUseChan),deltanIn,'g',fuse,deltanSave,'r')
-      plotaxis2; hl = legend('all Strow chans rates','Sequential chans rates','starting delta','ending delta','location','best','fontsize',8);
+    plot(fuse,driver.rateset.rates(inds),'b-',fuse(iUseChan),driver.rateset.rates(inds(iUseChan)),'k.-',fuse(iUseChan),raBTdeltanIn,'g',fuse,raBTdeltanSave,'r')
+      plotaxis2; hl = legend('all Strow chans rates','Sequential chans rates','starting raBTdelta','ending raBTdelta','location','best','fontsize',8);
   figure(23);
     if iSequential == -1
       junkST  = k(:,6);
@@ -255,33 +281,49 @@ for iiS = 1 : length(iaSequential)
       junkTz  = k(:,driver.jacobian.temp_i);
       junkO3  = k(:,driver.jacobian.ozone_i);
       plot(fuse(iUseChan),junkST,fuse(iUseChan),sum(junkWV,2),fuse(iUseChan),sum(junkTz,2),fuse(iUseChan),sum(junkO3,2)); plotaxis2; hl = legend('ST','WV','T','O3','location','best','fontsize',10); title('JAC')
+
+      figure(2); clf; plot(deltax(driver.jacobian.water_i).*driver.qrenorm(driver.jacobian.water_i)',1:length(driver.jacobian.water_i),'b',...
+                           yn(driver.jacobian.water_i).*driver.qrenorm(driver.jacobian.water_i)',1:length(driver.jacobian.water_i),'r');   plotaxis2; set(gca,'ydir','reverse'); title('\delta WV');
+      figure(3); clf; plot(deltax(driver.jacobian.temp_i).*driver.qrenorm(driver.jacobian.temp_i)',1:length(driver.jacobian.temp_i),'b',...
+                           yn(driver.jacobian.temp_i).*driver.qrenorm(driver.jacobian.temp_i)',1:length(driver.jacobian.temp_i),'r');      plotaxis2; set(gca,'ydir','reverse'); title('\delta Tz');
+      figure(4); clf; plot(deltax(driver.jacobian.ozone_i).*driver.qrenorm(driver.jacobian.ozone_i)',1:length(driver.jacobian.ozone_i),'b',...
+                           yn(driver.jacobian.ozone_i).*driver.qrenorm(driver.jacobian.ozone_i)',1:length(driver.jacobian.ozone_i),'r');  plotaxis2; set(gca,'ydir','reverse'); title('\delta O3');
+
     elseif iSequential == 150
       junkST  = k(:,1);
       junkTz  = k(:,2:length(driver.jacobian.temp_i)+1);
       plot(fuse(iUseChan),junkST,fuse(iUseChan),sum(junkTz,2)); plotaxis2; hl = legend('ST','T','location','best','fontsize',10); title('JAC')
+      figure(3); clf; plot(deltax(2:length(deltax)).*driver.qrenorm(driver.jacobian.temp_i)',1:length(driver.jacobian.temp_i),'b',...
+                           yn(driver.jacobian.temp_i).*driver.qrenorm(driver.jacobian.temp_i)',1:length(driver.jacobian.temp_i),'r');     plotaxis2; set(gca,'ydir','reverse'); title('\delta Tz');
     elseif iSequential == 100
       junkO3  = k;
       plot(fuse(iUseChan),sum(junkO3,2)); plotaxis2; hl = legend('O3','location','best','fontsize',10); title('JAC')
+      figure(4); clf; plot(deltax.*driver.qrenorm(driver.jacobian.ozone_i)',1:length(driver.jacobian.ozone_i),'b',...
+                           yn(driver.jacobian.ozone_i).*driver.qrenorm(driver.jacobian.ozone_i)',1:length(driver.jacobian.ozone_i),'r'); plotaxis2; set(gca,'ydir','reverse'); title('\delta O3');
     elseif iSequential == 60
       junkWV  = k;
       plot(fuse(iUseChan),sum(junkWV,2)); plotaxis2; hl = legend('WV','location','best','fontsize',10); title('JAC')
+      figure(2); clf; plot(deltax.*driver.qrenorm(driver.jacobian.water_i)',1:length(driver.jacobian.water_i),'b',...
+                           yn(driver.jacobian.water_i).*driver.qrenorm(driver.jacobian.water_i)',1:length(driver.jacobian.water_i),'r');   plotaxis2; set(gca,'ydir','reverse'); title('\delta WV');
     end
+    figure(24); plot(fuse,raBTdeltaIterate,'linewidth',2); plotaxis2; hl = legend(num2str([0 [iaSequential(1:iiS)]]'),'location','best','fontsize',8); title('delta(obs-cal)')
+    pause(0.1)
 
-      iYesPlot = 1;    
-      if driver.oem.doplots > 0 | iYesPlot > 0
-        figure(10); clf
-        figure(10); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'c.-',f(inds),thefitrdelta(inds),'k.-',f(inds),zeltan,'r.-','linewidth',2); plotaxis2;
-          hl = legend('input rates','signal''= to fit after subtracting trace gas jacs','fit','signal''-fit','location','best','fontsize',8);
-          title(['rodgers.m : ADJ SIGNAL \newline obs - fit at iteration ' num2str(ii)]); pause(0.1)
+    iYesPlot = 1;    
+    if driver.oem.doplots > 0 | iYesPlot > 0
+      figure(10); clf
+      figure(10); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'c.-',f(inds),thefitrdelta(inds),'k.-',f(inds),raBTzeltan,'r.-','linewidth',2); plotaxis2;
+        hl = legend('input rates','signal''= to fit after subtracting trace gas jacs','fit','signal''-fit','location','best','fontsize',8);
+        title(['rodgers.m : ADJ SIGNAL \newline obs - fit at iteration ' num2str(ii)]); pause(0.1)
   
-        figure(11); clf
-        figure(11); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),thefitr(inds),'k.-',f(inds),deltan,'r.-','linewidth',2); plotaxis2;
-          hl = legend('input rates','fit','signal-fit','location','best','fontsize',8);
-          title(['rodgers.m : RAW SIGNAL \newline obs - fit at iteration ' num2str(ii)]); pause(0.1)
-        %plot(f(inds),deltanIN,f(inds),deltan,'r'); 
-        %title(['obs - fit at iteration ' num2str(ii)]); pause(0.1)
-      end
-      xnIN = xn;
+      figure(11); clf
+      figure(11); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),thefitr(inds),'k.-',f(inds),raBTdeltan,'r.-','linewidth',2); plotaxis2;
+        hl = legend('input rates','fit','signal-fit','location','best','fontsize',8);
+        title(['rodgers.m : RAW SIGNAL \newline obs - fit at iteration ' num2str(ii)]); pause(0.1)
+      %plot(f(inds),raBTdeltanIN,f(inds),raBTdeltan,'r'); 
+      %title(['obs - fit at iteration ' num2str(ii)]); pause(0.1)
+    end
+    xnIN = xn;
     end
   end
 
@@ -289,34 +331,70 @@ for iiS = 1 : length(iaSequential)
   xnSave(iUseRetrParam) = xn; %% this is needed for next iSequential
 
   figure(10); clf
-  figure(10); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'c.-',f(inds),thefitrdelta(inds),'k.-',f(inds),zeltan,'r.-','linewidth',2); plotaxis2;
+  figure(10); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'c.-',f(inds),thefitrdelta(inds),'k.-',f(inds),raBTzeltan,'r.-','linewidth',2); plotaxis2;
           hl = legend('input rates','signal''= to fit after subtracting trace gas jacs','fit','signal''-fit','location','best','fontsize',8);
         title(['rodgers.m : ADJ SIGNAL \newline obs - fit at iteration ' num2str(ii)]); pause(0.1)
   
   figure(11); clf
-  figure(11); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),thefitr(inds),'k.-',f(inds),deltan,'r.-','linewidth',2); plotaxis2;
+  figure(11); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),thefitr(inds),'k.-',f(inds),raBTdeltan,'r.-','linewidth',2); plotaxis2;
           hl = legend('input rates','fit','signal-fit','location','best','fontsize',8);
           title(['rodgers.m : RAW SIGNAL \newline obs - fit at iteration ' num2str(ii)]); pause(0.1)
 
-  %disp('exiting iSequential loop [xbSave(1:10) xnSave(1:10) xb(1:10) xn(1:10)]')
-  %[xbSave(1:10) xnSave(1:10) xb(1:10) xn(1:10)]
-  %figure(11); title('Sequential, many stages'); disp('rodgers_sequential.m 2'); keyboard_nowindow
-  
-  bestloop = find(chisqr ==  min(chisqr),1);
-  fprintf(1,'bestloop (lowest chisqr) occured at iteration %3i \n',bestloop)
-  rodgers_rate = xsave(bestloop,:);
-  
-  if driver.oem.nloop >= 0
-    fprintf(1,'printing out successive chisqr values (upto N-1 th iterate) ... %8.6f %8.6f \n',[chisqr0 chisqr(end)])
+  figure(11); title(['iSequential = ' num2str(iSequential)]); disp('rodgers_sequential.m 2'); ylim([-1 +1]*0.025); pause(0.1); 
+    disp('exiting iSequential loop [xbSave(1:10) xnSave(1:10) xb(1:10) xn(1:10)]')
+    %[xbSave(1:10) xnSave(1:10) xb(1:10) xn(1:10)]
+    [xbSave(1:10).*driver.qrenorm(1:10)' xnSave(1:10).*driver.qrenorm(1:10)' xb(1:10).*driver.qrenorm(iUseRetrParam(1:10))' xn(1:10).*driver.qrenorm(iUseRetrParam(1:10))']
+  disp(' .................... >>>>>>>>>>> -------------------- <<<<<<<<<<<<< .....................')
+
+  iKey = +1;
+  iKey = -1;
+  if iKey > 0
+    keyboard_nowindow    
   end
 
-  if iSequential == -1    
+  if iSequential > 1 & iYesThisIsFine > 0
+    wadachisqr = xchisqr(iiS,:);
+    bestloop = find(wadachisqr ==  min(wadachisqr),1);
+    wadaxsave  = squeeze(xsave(iiS,bestloop,:));
+    fprintf(1,'for iiS = %2i bestloop (lowest chisqr) occured at iteration %3i \n',iiS,bestloop)
+    rodgers_rate_iiS(iiS,:) = wadaxsave;
+    rodgers_chisqr_iiS(iiS) = wadachisqr(bestloop);
+  end
+
+  if driver.oem.nloop > 1
+    fprintf(1,'printing out successive chisqr values (upto N-1 th iterate) ... %8.6f %8.6f %8.6f \n',[chisqr0 xchisqr(iiS,ii-1) xchisqr(iiS,ii)])
+  elseif driver.oem.nloop == 1
+    fprintf(1,'printing out successive chisqr values (upto N-1 th iterate) ... %8.6f %8.6f %8.6f \n',[chisqr0 chisqr0            xchisqr(iiS,ii)])
+  end
+
+  if iSequential == -1 & iiS == length(iaSequential)   
+    disp('computing DofF')
     do_the_dof_avg_kernel
   end
   
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% now find final best
+fprintf(1,'iaSeqential chisqr = %5i %10.6f \n',[iaSequential rodgers_chisqr_iiS]);
+bestloop = find(rodgers_chisqr_iiS == min(rodgers_chisqr_iiS));
+rodgers_rate = rodgers_rate_iiS(bestloop,:)';
+
+figure(24); plot(fuse,raBTdeltaIterate,'linewidth',2); plotaxis2; hl = legend(num2str([0 [iaSequential(1:iiS)]]'),'location','best','fontsize',8); title('delta(obs-cal)')
+figure(2); hold on; plot(rodgers_rate(driver.jacobian.water_i).*driver.qrenorm(driver.jacobian.water_i)',1:length(driver.jacobian.water_i),'gx-'); plotaxis2; set(gca,'ydir','reverse'); hold off; title('\delta WV final');
+figure(3); hold on; plot(rodgers_rate(driver.jacobian.temp_i).*driver.qrenorm(driver.jacobian.temp_i)',1:length(driver.jacobian.temp_i),'gx-');    plotaxis2; set(gca,'ydir','reverse'); hold off; title('\delta Tz final');
+figure(4); hold on; plot(rodgers_rate(driver.jacobian.ozone_i).*driver.qrenorm(driver.jacobian.ozone_i)',1:length(driver.jacobian.ozone_i),'gx-'); plotaxis2; set(gca,'ydir','reverse'); hold off; title('\delta O3 final');
+
+[mmmmS,nnnnS] = size(raBTdeltaIterate);
+figure(25); plot(fuse,raBTdeltaIterate(:,nnnnS-1:nnnnS),'linewidth',2); plotaxis2; hl = legend(num2str([iaSequential(iiS-1:iiS)]'),'location','best','fontsize',8); title('delta(obs-cal)')
+
+pause(0.1);
+if iKey > 0
+  keyboard_nowindow
+end
+
+rodgers_rate = rodgers_rate';   %% need this lousy line!!!!
 
 ff1 = 640; ff2 = 840;
 ff1 = 640; ff2 = 1640;
