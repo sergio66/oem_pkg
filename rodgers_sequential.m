@@ -42,6 +42,20 @@ function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,
 common_rodgers_initializations1
 
 %---------------------------------------------------------------------------
+addpath /home/sergio/MATLABCODE/CRODGERS_FAST_CLOUD/
+
+% function [airsL2_chans_set,airsL2_list_set,airsL2_IDs_set,fairs0,chanIDairs] = airsL2_retrieval_channel_set(nchan2378or2645,iIgnoreWindow_forWVretr,iv6or7);
+% input
+%   if nchan2378or2645      = +1 then we are using 2378 chan set  so eg airsL2_IDs_set = 1291,airsL2_chans_set = 1231.3
+%                           = -1 then we are using 2645 chan set
+%   iv6or7                  = v6 or 7 (default 7)
+%   iIgnoreWindow_forWVretr = +1 (ignore when setting WV chans) or -1 (include)
+% output
+%    airsL2_chans_set = channel center freq    h.vchan(chosen)
+%    airsL2_list_set  = channel list           chosen
+%    airsL2_IDs_set   = channel ID             h.ichan(chosen)
+%    fairs,chanIDairs = channels centers,cIDlist (for 2378 chans cIDlist is ordered 1:2378 ... for 2645 chans, f is sorted)
+%------------------------------------------------------------------------
 
 iaSequential = driver.iaSequential;
 
@@ -65,6 +79,11 @@ raBTdeltanSave = raBTdeltan; %% from common_rodgers_initialization, this is stro
 
 raBTdeltaIterate(:,1) = raBTdeltanSave;
 
+[airsL2_chans_set,airsL2_list_set,airsL2_IDs_set,fairs0,chanIDairs] = airsL2_retrieval_channel_set(-1,-1,7);
+% keyboard_nowindow
+%% PLEASE NOTE BENE that for AIRS TRENDS length(f) = 2645, and f = h.vchan for AIRS L1C so eg f(1520) = 1231.3 cm-1
+%%    so basically chanIDairs(1520) = 1291 and f = fairs0
+
 for iiS = 1 : length(iaSequential)
   iSequential = iaSequential(iiS);
   if iiS <= length(iaSequential_orig)
@@ -76,7 +95,7 @@ for iiS = 1 : length(iaSequential)
   end
 
   fuse = f(inds);
-
+  
   if iSequential == -1
     %% nothing to do, use all chans, retrieve all geophys params
     iUseRetrParam  = 1 : length(xbSave);
@@ -89,12 +108,24 @@ for iiS = 1 : length(iaSequential)
     iUseChans15 = find(fuse <= 800);
     iUseWindow  = find((fuse > 820 & fuse <= 960) | (fuse > 1225 & fuse <= 1235));
     iUseChan    = union(iUseChans15,iUseWindow);
+
+    iA = airsL2_IDs_set.tz;
+    iB = airsL2_IDs_set.stemp;
+    iC = union(union(airsL2_IDs_set.cloudphase,airsL2_IDs_set.cirrus),airsL2_IDs_set.emiss_lw);
+    iB = union(iB,iC);
+    %[~,~,iUseChan] = intersect(inds,union(iA,iB));
+    [~,iUseChan,~] = intersect(inds,union(iA,iB));
+
   elseif iSequential == 100
     %% 10 um O3(z)
     iUseRetrParam = [driver.jacobian.ozone_i];
 
     iUse = find(fuse > 1000 & fuse < 1080);
     iUseChan = iUse;
+
+    iA = airsL2_IDs_set.ozone;
+    %[~,~,iUseChan] = intersect(inds,iA);
+    [~,iUseChan,~] = intersect(inds,iA);
 
   elseif iSequential == 60
     %% 6 um WV(z)
@@ -104,10 +135,19 @@ for iiS = 1 : length(iaSequential)
     iUseChans6 = find(fuse > 1380 & fuse <= 1700);
     iUseChan   = union(iUseChans6,iUseWindow);
 
+    iA = airsL2_IDs_set.wvz;
+    iB = airsL2_IDs_set.cloudclearing;
+    %[~,~,iUseChan] = intersect(inds,union(iA,iB));
+    [~,iUseChan,~] = intersect(inds,union(iA,iB));
+
   end
 
-  se = seSave(iUseChan,iUseChan);          %% iSequential ~20 params
-  k = kSave(iUseChan,iUseRetrParam);       %% iSequential ~20 params
+  plot(iUseChan,f(inds(iUseChan)),'.'); xlabel('iUseChan'); ylabel('f(inds(iUseChan))'); title(['iSequential = ' num2str(iSequential)]); 
+  %disp('ret to continue'); pause
+
+whos seSave kSave
+  se = seSave(iUseChan,iUseChan);          %% iSequential ~100 channels
+  k = kSave(iUseChan,iUseRetrParam);       %% iSequential ~100 channels,~20 params
   xn = xnSave(iUseRetrParam);              %% iSequential ~20 params
   xb = xbSave(iUseRetrParam);              %% iSequential ~20 params
   raBTdeltan = raBTdeltanSave(iUseChan);   %% iSequential ~100 channels

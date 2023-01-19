@@ -18,6 +18,11 @@ end
 % Don't do OEM fit if dofit is false.  This is for LLS studies
 if driver.oem.dofit
 
+  if ~isfield(driver,'iaSequential')
+    disp('in oem_lls : you must have git checkout oldbranch : setting driver.iaSequential = -1')
+    driver.iaSequential = -1;
+  end
+
   % Do the OEM retrieval
   if driver.iaSequential(1) == -1 & length(driver.iaSequential) == 1
     %% default ie do all geophysical parameters in one massive gulp
