@@ -114,6 +114,12 @@ xnIN = xn;
 k = m_ts_jac(inds,:);
 [mm,nn] = size(k);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+disp(' >>> these are the indices where xb is not 0 ie you have initialized them <<<<')
+chch = find(abs(xb) > eps); [chch xb(chch) xb(chch).*driver.qrenorm(chch)']
+disp(' >>> these are the indices where xb is not 0 ie you have initialized them <<<<')
+
 iAddXB = -1; %% new, does this really makes more sense see eg anomaly_0dayavg_resultsXloop3try2?????
 iAddXB = +1; %% orig, wierd but I think it is ok as you need raBTdelta0 = obs - tracegas_offset = obs-f(x0) = obs - f(xb)
 if iAddXB > 0
@@ -123,12 +129,20 @@ if iAddXB > 0
   tracegas_offset = zeros(size(driver.rateset.rates));
   for iy = 1 : length(xn)
      tracegas_offset = tracegas_offset + (xn(iy)*m_ts_jac(:,iy));
+     if iy == length(driver.jacobian.scalar_i)
+       tracegas_offset6 = tracegas_offset;
+     end
   end
-  iJUNK = [driver.jacobian.scalar_i  driver.jacobian.water_i(1) driver.jacobian.temp_i(1) driver.jacobian.ozone_i(1)];
+  iJUNK = [driver.jacobian.scalar_i  driver.jacobian.water_i([1 end]) driver.jacobian.temp_i([1 end]) driver.jacobian.ozone_i([1 end])];
   disp('   scalar/WV/T/O3 xb');
   disp('   xb    |qrenorm   |  xb.*qrenorm')
   disp('------------------------------------')
-  fprintf(1,'%8.4f | %8.4f | %8.4f \n', [xn(iJUNK)   driver.qrenorm(iJUNK)'  xn(iJUNK).*driver.qrenorm(iJUNK)']')
+  for iii = 1 : length(iJUNK)
+    fprintf(1,'%8.4f | %8.4f | %8.4f \n', [xn(iJUNK(iii))   driver.qrenorm(iJUNK(iii))'  xn(iJUNK(iii)).*driver.qrenorm(iJUNK(iii))']')
+    if iii == length(driver.jacobian.scalar_i) | iii == length(driver.jacobian.scalar_i)+2 | iii == length(driver.jacobian.scalar_i)+4
+      disp('------------------------------------')
+    end
+  end
   disp('------------------------------------')
 
   tracegas_offset00 = tracegas_offset;
@@ -138,6 +152,7 @@ if iAddXB > 0
 else
   tracegas_offset = zeros(size(driver.rateset.rates));
   tracegas_offset00 = tracegas_offset;
+  tracegas_offset6 = tracegas_offset;
   raBTdeltan00 = driver.rateset.rates - tracegas_offset00;    %%% << this is what we are fitting, all chans >>
   raBTdeltan   = raBTdeltan00(inds);                 %%% << this is what we are fitting, selected chans >>
   raBTdeltan0  = raBTdeltan;
@@ -159,7 +174,7 @@ else
   error('oooorrr is this AIRS 2378 or 2465 or Cris 1305?')
 end
 
-figure(12); plot(1:length(tracegas_offset),tracegas_offset,1:length(tracegas_offset),m_ts_jac(:,1:3)); hl = legend('tracegas offset','CO2 jac','N2O jac','CH4 jac','location','best','fontsize',10);
+figure(12); plot(f,tracegas_offset,'b.-',f,tracegas_offset6,'r',f,m_ts_jac(:,1:3)); hl = legend('tracegas+T/WV/O3 offset','tracegas ONLY offset','CO2 jac','N2O jac','CH4 jac','location','best','fontsize',10);
 
 figure(1); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),tracegas_offset(inds),'g.-',f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'c.-','linewidth',2); 
   plotaxis2; title('in oem\_pkg/rodgers.m : nyuk'); 

@@ -159,7 +159,13 @@ for ii = 1 : driver.oem.nloop
       thefitr      = thefitr + xn(ix)*m_ts_jac(:,ix)';
       thefitrdelta = thefitrdelta + deltax(ix)*m_ts_jac(:,ix)';
     end
-    figure(7); plot(f(inds),raBTdeltan,'c',f(inds),thefitrdelta(inds),'r','linewidth',2); plotaxis2; title('(c) raBTdeltaN to be fitted (r) fit')
+    figure(7); plot(f(inds),raBTdeltan,'c',f(inds),thefitrdelta(inds),'k',f(inds),raBTdeltan'-thefitrdelta(inds),'r','linewidth',2); plotaxis2; title('(c) raBTdeltaN to be fitted (k) fit (r) diff')
+    hold on
+      plot(f(inds),+driver.rateset.unc_rates(inds),'color',[1 1 1]*0.75);
+      plot(f(inds),-driver.rateset.unc_rates(inds),'color',[1 1 1]*0.75);
+      ylim([-1 +1]*0.05)
+    hold off
+
     [~,numlay] = size(k);
     numlay = (numlay-6)/3;
 
@@ -204,7 +210,6 @@ end
 
 raBTdeltaIterate(:,2) = raBTdeltan;
 fuse = f(inds);
-whos fuse raaRaBTdeltaIterate
 figure(24); clf; plot(fuse,raBTdeltaIterate,'linewidth',2); plotaxis2; hl = legend(num2str([0; -1]),'location','best','fontsize',8); title('raBTdelta(obs-cal)')
     pause(0.1)
 

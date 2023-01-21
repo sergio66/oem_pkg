@@ -291,7 +291,12 @@ whos seSave kSave
         %% this just uses the params used in this iSequential round, all 2645 chans DOES NOT USE EG trace gas sometimes, or T(z)/ST sometimes, or WV sometimes , or O3 sometimes
         thefitrdelta = thefitrdelta + deltax(ix)*m_ts_jac(:,iUseRetrParam(ix))';
       end
-      figure(7); plot(f(inds(iUseChan)),raBTdeltan,'c',f(inds),thefitrdelta(inds),'r','linewidth',2); plotaxis2; title('(c) raBTdeltaN to be fitted (r) fit')
+      figure(7); plot(f(inds),raBTdeltan,'c',f(inds),thefitrdelta(inds),'k',f(inds),raBTdeltan'-thefitrdelta(inds),'r','linewidth',2); plotaxis2; title('(c) raBTdeltaN to be fitted (k) fit (r) diff')
+      hold on
+        plot(f(inds),+driver.rateset.unc_rates(inds),'color',[1 1 1]*0.75);
+        plot(f(inds),-driver.rateset.unc_rates(inds),'color',[1 1 1]*0.75);
+        ylim([-1 +1]*0.05)
+      hold off
     
       % Compute chisqr, and new raBTdeltan
       raBTdeltanIn   = raBTdeltan;                                              %% iSequential ~100 channels
