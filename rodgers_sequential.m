@@ -57,6 +57,8 @@ addpath /home/sergio/MATLABCODE/CRODGERS_FAST_CLOUD/
 %    fairs,chanIDairs = channels centers,cIDlist (for 2378 chans cIDlist is ordered 1:2378 ... for 2645 chans, f is sorted)
 %------------------------------------------------------------------------
 
+figure(12); clf
+
 iaSequential = driver.iaSequential;
 
 iaSequential_orig = iaSequential;
@@ -66,8 +68,23 @@ if iaSequential(end) ~= -1
   iaSequential = [iaSequential -1];
 end
 
+get_inv_se_rcov_allchans_allparams   %% iaSequential = -1
+
+qrenormSave    = driver.qrenorm;
 seSave         = se;
+inv_seSave     = inv_se;
 rcovSave       = driver.oem.cov;
+rSave          = r;
+rcovSave2      = rcov2;
+rSave2         = r2;
+if exist('rcov210')
+  rcovSave210    = rcov210;
+  rSave210       = r210;
+end
+if exist('rcov214')
+  rcovSave214    = rcov214;
+  rSave214       = r214;
+end
 kSave          = k;
 xbSave         = xb;
 xnSave         = xn;
@@ -90,88 +107,82 @@ for iiS = 1 : length(iaSequential)
     iYesThisIsFine = +1;
     fprintf(1,' iiS = %2i of %2i : doing iSequential = %2i \n',iiS,length(iaSequential),iSequential);
   else
-    iYesThisIsFine = -11;
+    iYesThisIsFine = -1;
+    iYesThisIsFine = +1; %% well if it improves things USE IT
     fprintf(1,' iiS = %2i of %2i : need DofF so doing extra iSequential = %2i \n',iiS,length(iaSequential),iSequential);
   end
 
   fuse = f(inds);
-  
-  if iSequential == -1
-    %% nothing to do, use all chans, retrieve all geophys params
-    iUseRetrParam  = 1 : length(xbSave);
-    iUseChan       = 1 : length(inds);
 
-  elseif iSequential == 150
-    %% 15 um T(z) and STEMP
-    iUseRetrParam = [6 driver.jacobian.temp_i];
-
-    iUseChans15 = find(fuse <= 800);
-    iUseWindow  = find((fuse > 820 & fuse <= 960) | (fuse > 1225 & fuse <= 1235));
-    iUseChan    = union(iUseChans15,iUseWindow);
-
-    iA = airsL2_IDs_set.tz;
-    iB = airsL2_IDs_set.stemp;
-    iC = union(union(airsL2_IDs_set.cloudphase,airsL2_IDs_set.cirrus),airsL2_IDs_set.emiss_lw);
-    iB = union(iB,iC);
-    %[~,~,iUseChan] = intersect(inds,union(iA,iB));
-    [~,iUseChan,~] = intersect(inds,union(iA,iB));
-
-  elseif iSequential == 100
-    %% 10 um O3(z)
-    iUseRetrParam = [driver.jacobian.ozone_i];
-
-    iUse = find(fuse > 1000 & fuse < 1080);
-    iUseChan = iUse;
-
-    iA = airsL2_IDs_set.ozone;
-    %[~,~,iUseChan] = intersect(inds,iA);
-    [~,iUseChan,~] = intersect(inds,iA);
-
-  elseif iSequential == 60
-    %% 6 um WV(z)
-    iUseRetrParam = [driver.jacobian.water_i];
-
-    iUseWindow = find((fuse > 820 & fuse <= 960) | (fuse > 1090 & fuse <= 1280));
-    iUseChans6 = find(fuse > 1380 & fuse <= 1700);
-    iUseChan   = union(iUseChans6,iUseWindow);
-
-    iA = airsL2_IDs_set.wvz;
-    iB = airsL2_IDs_set.cloudclearing;
-    %[~,~,iUseChan] = intersect(inds,union(iA,iB));
-    [~,iUseChan,~] = intersect(inds,union(iA,iB));
-
-  end
-
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  [iUseRetrParam,iUseChan] = get_sequential_indices_params(airsL2_chans_set,airsL2_list_set,airsL2_IDs_set,fairs0,chanIDairs,fuse,inds,xbSave,driver,iSequential);
   plot(iUseChan,f(inds(iUseChan)),'.'); xlabel('iUseChan'); ylabel('f(inds(iUseChan))'); title(['iSequential = ' num2str(iSequential)]); 
   %disp('ret to continue'); pause
 
-whos seSave kSave
+  disp(' .................... >>>>>>>>>>> -------------------- <<<<<<<<<<<<< .....................')
+  disp('starting iSequential loop physical vars : [xbSave(ImportantParam) xnSave(ImportantParam) xb(ImportantParamX) xn(ImportantParamX)] ...')
+  iImportantParam  = [1 2 3 6 driver.jacobian.water_i(end) driver.jacobian.water_i(1) driver.jacobian.temp_i(end) driver.jacobian.temp_i(1) driver.jacobian.ozone_i(end) driver.jacobian.ozone_i(1)];
+  if iSequential == -1
+    disp(' ... and where ImportantParamX = CO2 CH4 N2O ST wvz(GND TOA) Tz(GND TOA) o3z(GND TOA)')
+    iImportantParamX = [1 2 3 6    driver.jacobian.water_i(end) driver.jacobian.water_i(1) driver.jacobian.temp_i(end) driver.jacobian.temp_i(1) driver.jacobian.ozone_i(end) driver.jacobian.ozone_i(1)];
+  elseif iSequential == 150
+    disp(' ... and where ImportantParamX = ST ST ST ST Tz(GND TOA) Tz(GND TOA) Tz(GND TOA)')
+    iImportantParamX = [1 1 1 1    1+length(driver.jacobian.water_i) 2 1+length(driver.jacobian.water_i) 2 1+length(driver.jacobian.water_i) 2];
+  elseif iSequential == 210
+    disp(' ... and where ImportantParamX = ST ST ST ST WVz(GND GND+4) WVz(GND GND+4) Tz(GND TOA)')
+    iImportantParamX = [1 1 1 1    5 2 5 2 length(iUseRetrParam) 6];
+  elseif iSequential == 214
+    disp(' ... and where ImportantParamX = ST ST ST ST WVz(GND GND+4) WVz(GND GND+4) Tz(GND GND+4)')
+    iImportantParamX = [1 1 1 1    5 2 5 2 length(iUseRetrParam) 6];
+  elseif iSequential == 60 | iSequential == 100
+    disp(' ... and where ImportantParamX = 4xwvz/o3z(1) wvz/o3z(GND TOA) wvz/o3z(GND TOA) wvz/o3z(GND TOA)')
+    iImportantParamX = [1 1 1 1    length(driver.jacobian.water_i) 1 length(driver.jacobian.water_i) 1 length(driver.jacobian.water_i) 1];
+  end
+
+  junk = [xbSave(iImportantParam).*driver.qrenorm(iImportantParam)' xnSave(iImportantParam).*driver.qrenorm(iImportantParam)' ...
+          xb(iImportantParamX).*driver.qrenorm(iUseRetrParam(iImportantParamX))' xn(iImportantParamX).*driver.qrenorm(iUseRetrParam(iImportantParamX))'];
+  for iijunk = 1 : 10
+    fprintf(1,'%8.5f   %8.5f      %8.5f   %8.5f \n',junk(iijunk,:));
+    if iijunk == 4 | iijunk == 6 | iijunk == 8
+      disp('-------------------------------------------------------------')
+    end
+  end
+  %-------------------------
+
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
   se = seSave(iUseChan,iUseChan);          %% iSequential ~100 channels
+  inv_se = inv_seSave(iUseChan,iUseChan);  %% iSequential ~100 channels
   k = kSave(iUseChan,iUseRetrParam);       %% iSequential ~100 channels,~20 params
   xn = xnSave(iUseRetrParam);              %% iSequential ~20 params
   xb = xbSave(iUseRetrParam);              %% iSequential ~20 params
   raBTdeltan = raBTdeltanSave(iUseChan);   %% iSequential ~100 channels
+  qrenorm = qrenormSave(iUseRetrParam);    %% iSequential ~20 params
+
+  get_inv_se_rcov_iSequential   %% this would make afresh : rc,rcov and thus r
 
   figure(21);
     plot(fuse,driver.rateset.rates(inds),'b.',fuse(iUseChan),driver.rateset.rates(inds(iUseChan)),'r')
 
-  disp(' .................... >>>>>>>>>>> -------------------- <<<<<<<<<<<<< .....................')
-  disp('starting iSequential loop physical vars : [xbSave(1:10) xnSave(1:10) xb(1:10) xn(1:10)]')
-  %[xbSave(1:10) xnSave(1:10) xb(1:10) xn(1:10)]
-  [xbSave(1:10).*driver.qrenorm(1:10)' xnSave(1:10).*driver.qrenorm(1:10)' xb(1:10).*driver.qrenorm(iUseRetrParam(1:10))' xn(1:10).*driver.qrenorm(iUseRetrParam(1:10))']
-
-  %-------------------------
-
-  get_inv_se_rcov
-  rcov = rcovSave(iUseRetrParam,iUseRetrParam);
-  r    = r(iUseRetrParam,iUseRetrParam);
-
+  %% get_inv_se_rcov_allchans_allparams 
+  %% rcov = rcovSave(iUseRetrParam,iUseRetrParam);
+  %% r    = rSave(iUseRetrParam,iUseRetrParam);
+  %% if iSequential == -1
+  %%   rcov = rcovSave2(iUseRetrParam,iUseRetrParam);
+  %%   r    = rSave2(iUseRetrParam,iUseRetrParam);
+  %% elseif iSequential == 210
+  %%   rcov = rcovSave210(iUseRetrParam,iUseRetrParam);
+  %%   r    = rSave210(iUseRetrParam,iUseRetrParam);
+  %% elseif iSequential == 214
+  %%   rcov = rcovSave214(iUseRetrParam,iUseRetrParam);
+  %%   r    = rSave214(iUseRetrParam,iUseRetrParam);
+  %% end
   %-------------------------
   
   % whos seSave rCovSave kSave raBTdeltanSave xbSave fuse iUseChan r k inv_se rcov rc
-  chisqr0  = nansum(raBTdeltan'.*raBTdeltan');          %% only ~100 iSeuqntial chans
+  chisqr0  = nansum(raBTdeltan'.*raBTdeltan');          %% only ~100 iSeqential chans
   xchisqr0 = nansum(raBTdeltanSave'.*raBTdeltanSave');  %% strow ~500 chans
-  
+
   for ii = 1 : driver.oem.nloop
     % Do the retrieval inversion
     if invtype ~= 3
@@ -243,7 +254,11 @@ whos seSave kSave
   
     % Update first guess with deltax changes
     xnbefore = xn;
-  
+
+    if iSequential == 150
+      fprintf(1,'deltax(SST) = %8.5f \n', deltax(1).*qrenorm(1))
+    end
+
     rodgers_rate = real(xn + deltax);
     figure(9); plot(1:length(xn),xn,'ko-',1:length(xn),deltax,'bx-',1:length(xn),real(xn+deltax),'r.-')
     figure(9); plot(1:length(xn),xn.*driver.qrenorm(iUseRetrParam)','ko-',1:length(xn),deltax.*driver.qrenorm(iUseRetrParam)','bx-',1:length(xn),real(xn+deltax).*driver.qrenorm(iUseRetrParam)','r.-')
@@ -253,21 +268,27 @@ whos seSave kSave
     ah0 = xn.*driver.qrenorm(iUseRetrParam)';
     dah = deltax.*driver.qrenorm(iUseRetrParam)';
     ah1 = real(xn+deltax).*driver.qrenorm(iUseRetrParam)';
-    figure(8); 
+    figure(12); 
     if iSequential == -1
-      subplot(131); plot(ah0(driver.jacobian.water_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.water_i),1:length(driver.jacobian.water_i),'r'); title('WV'); set(gca,'ydir','reverse')
-      subplot(132); plot(ah0(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'r');  title('T'); set(gca,'ydir','reverse')
-      subplot(133); plot(ah0(driver.jacobian.ozone_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.ozone_i),1:length(driver.jacobian.water_i),'r'); title('O3'); set(gca,'ydir','reverse')
+      subplot(131); plot(ah0(driver.jacobian.water_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.water_i),1:length(driver.jacobian.water_i),'r.-'); title('WV'); plotaxis2; set(gca,'ydir','reverse')
+      subplot(132); plot(ah0(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'r.-');   title('T'); plotaxis2; set(gca,'ydir','reverse')
+      subplot(133); plot(ah0(driver.jacobian.ozone_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.ozone_i),1:length(driver.jacobian.water_i),'r.-'); title('O3'); plotaxis2; set(gca,'ydir','reverse')
     elseif iSequential == 60
-      subplot(131); plot(ah0,1:length(driver.jacobian.water_i),'b',ah1,1:length(driver.jacobian.water_i),'r'); title('WV'); set(gca,'ydir','reverse')
+      subplot(131); plot(ah0,1:length(driver.jacobian.water_i),'b',ah1,1:length(driver.jacobian.water_i),'r.-'); title('WV'); plotaxis2; set(gca,'ydir','reverse')
     elseif iSequential == 150
-      subplot(132); plot(ah0,1:length(ah0),'b',ah1,1:length(ah0),'r');  title('T'); set(gca,'ydir','reverse')
+      subplot(132); plot(ah0(1),length(ah0),'bo',ah0(2:length(ah0)),1:length(ah0)-1,'b',ah1(1),length(ah0),'ro',ah1(2:length(ah0)),1:length(ah0)-1,'r.-');  title('T'); plotaxis2; set(gca,'ydir','reverse')
+    elseif iSequential == 210
+      subplot(132); plot(ah0(1),length(driver.jacobian.water_i)+1,'bo',ah0(6:length(ah0)),1:length(ah0)-5,'b',...
+                         ah1(1),length(driver.jacobian.water_i)+1,'ro',ah1(6:length(ah0)),1:length(ah0)-5,'r.-');  title('T'); plotaxis2; set(gca,'ydir','reverse')
+    elseif iSequential == 214
+      subplot(132); plot(ah0(1),5,'bo',ah0(6:9),1:4,'b',ah1(1),5,'ro',ah1(6:9),1:4,'r.-');  title('T'); plotaxis2; set(gca,'ydir','reverse')
     elseif iSequential == 100
-      subplot(133); plot(ah0,1:length(driver.jacobian.ozone_i),'b',ah1,1:length(driver.jacobian.ozone_i),'r'); title('O3'); set(gca,'ydir','reverse')
+      subplot(133); plot(ah0,1:length(driver.jacobian.ozone_i),'b',ah1,1:length(driver.jacobian.ozone_i),'r.-'); title('O3'); plotaxis2; set(gca,'ydir','reverse')
     end
 
+    figure(1); 
     xn = rodgers_rate;
-    xsave(iiS,ii,iUseRetrParam) = rodgers_rate;  %%% <<<< save rodgers_rate and chisqr at iteration ii,iSequential of driver.oem.loop >>>>
+    xsave(iiS,ii,iUseRetrParam) = rodgers_rate;  %%% <<<< save rodgers_rate at iteration "for iiS = 1 : length(iaSequential)" "for ii = 1 : driver.oem.nloop"  >>>
   
     if ii <= driver.oem.nloop
       %% so this will be executed even if driver.oem.nloop == 1
@@ -291,7 +312,8 @@ whos seSave kSave
         %% this just uses the params used in this iSequential round, all 2645 chans DOES NOT USE EG trace gas sometimes, or T(z)/ST sometimes, or WV sometimes , or O3 sometimes
         thefitrdelta = thefitrdelta + deltax(ix)*m_ts_jac(:,iUseRetrParam(ix))';
       end
-      figure(7); plot(f(inds),raBTdeltan,'c',f(inds),thefitrdelta(inds),'k',f(inds),raBTdeltan'-thefitrdelta(inds),'r','linewidth',2); plotaxis2; title('(c) raBTdeltaN to be fitted (k) fit (r) diff')
+      figure(7); plot(fuse(iUseChan),raBTdeltan,'c',fuse(iUseChan),thefitrdelta(inds(iUseChan)),'k',fuse(iUseChan),raBTdeltan'-thefitrdelta(inds(iUseChan)),'r','linewidth',2); plotaxis2; 
+      title('(c) raBTdeltaN to be fitted (k) fit (r) diff')
       hold on
         plot(f(inds),+driver.rateset.unc_rates(inds),'color',[1 1 1]*0.75);
         plot(f(inds),-driver.rateset.unc_rates(inds),'color',[1 1 1]*0.75);
@@ -386,30 +408,39 @@ whos seSave kSave
           title(['rodgers.m : RAW SIGNAL \newline obs - fit at iteration ' num2str(ii)]); pause(0.1)
 
   figure(11); title(['iSequential = ' num2str(iSequential)]); disp('rodgers_sequential.m 2'); ylim([-1 +1]*0.025); pause(0.1); 
-    disp('exiting iSequential loop [xbSave(1:10) xnSave(1:10) xb(1:10) xn(1:10)]')
-    %[xbSave(1:10) xnSave(1:10) xb(1:10) xn(1:10)]
-    [xbSave(1:10).*driver.qrenorm(1:10)' xnSave(1:10).*driver.qrenorm(1:10)' xb(1:10).*driver.qrenorm(iUseRetrParam(1:10))' xn(1:10).*driver.qrenorm(iUseRetrParam(1:10))']
+    disp('exiting iSequential loop physical vars : [xbSave(ImportantParam) xnSave(ImportantParam) xb(ImportantParamX) xn(ImportantParamX)]')
+    junk = [xbSave(iImportantParam).*driver.qrenorm(iImportantParam)' xnSave(iImportantParam).*driver.qrenorm(iImportantParam)' ...
+     xb(iImportantParamX).*driver.qrenorm(iUseRetrParam(iImportantParamX))' xn(iImportantParamX).*driver.qrenorm(iUseRetrParam(iImportantParamX))'];
+    for iijunk = 1 : 10
+      fprintf(1,'%8.5f   %8.5f      %8.5f   %8.5f \n',junk(iijunk,:));
+      if iijunk == 4 | iijunk == 6 | iijunk == 8
+        disp('-------------------------------------------------------------')
+      end
+    end
+
   disp(' .................... >>>>>>>>>>> -------------------- <<<<<<<<<<<<< .....................')
 
-  iKey = +1;
-  iKey = -1;
-  if iKey > 0
-    keyboard_nowindow    
-  end
-
-  if iSequential > 1 & iYesThisIsFine > 0
+  if iSequential >= -1 & iYesThisIsFine > 0
     wadachisqr = xchisqr(iiS,:);
     bestloop = find(wadachisqr ==  min(wadachisqr),1);
     wadaxsave  = squeeze(xsave(iiS,bestloop,:));
-    fprintf(1,'for iiS = %2i bestloop (lowest chisqr) occured at iteration %3i \n',iiS,bestloop)
+    fprintf(1,'for iiS = %2i iSequential = %2i bestloop (lowest chisqr) occured at iteration %3i \n',iiS,iSequential,bestloop)
     rodgers_rate_iiS(iiS,:) = wadaxsave;
     rodgers_chisqr_iiS(iiS) = wadachisqr(bestloop);
   end
 
   if driver.oem.nloop > 1
-    fprintf(1,'printing out successive chisqr values (upto N-1 th iterate) ... %8.6f %8.6f %8.6f \n',[chisqr0 xchisqr(iiS,ii-1) xchisqr(iiS,ii)])
+    fprintf(1,'printing out successive chisqr values (upto N-1 th iterate) ... %8.5f %8.5f %8.5f \n',[chisqr0 xchisqr(iiS,ii-1) xchisqr(iiS,ii)])
   elseif driver.oem.nloop == 1
-    fprintf(1,'printing out successive chisqr values (upto N-1 th iterate) ... %8.6f %8.6f %8.6f \n',[chisqr0 chisqr0            xchisqr(iiS,ii)])
+    fprintf(1,'printing out successive chisqr values (upto N-1 th iterate) ... %8.5f %8.5f %8.5f \n',[chisqr0 chisqr0            xchisqr(iiS,ii)])
+  end
+
+  iKey = -1;
+  iKey = +1;
+  if iKey > 0
+    keyboard_nowindow    
+  else
+    pause(0.1);
   end
 
   if iSequential == -1 & iiS == length(iaSequential)   
@@ -436,7 +467,12 @@ figure(25); plot(fuse,raBTdeltaIterate(:,nnnnS-1:nnnnS),'linewidth',2); plotaxis
 
 pause(0.1);
 if iKey > 0
-  keyboard_nowindow
+  ahF = real(rodgers_rate).*driver.qrenorm(iUseRetrParam)';
+  figure(12); 
+      subplot(131); hold on; plot(ahF(driver.jacobian.water_i),1:length(driver.jacobian.water_i),'k.-'); title('WV'); plotaxis2; set(gca,'ydir','reverse'); hold off
+      subplot(132); hold on; plot(ahF(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'k.-');   title('T'); plotaxis2; set(gca,'ydir','reverse'); hold off
+      subplot(133); hold on; plot(ahF(driver.jacobian.ozone_i),1:length(driver.jacobian.water_i),'k.-'); title('O3'); plotaxis2; set(gca,'ydir','reverse'); hold off
+  keyboardstr = 'this is right before we exit rodgers_sequential.m, so check carefully'; keyboard_nowindow
 end
 
 rodgers_rate = rodgers_rate';   %% need this lousy line!!!!

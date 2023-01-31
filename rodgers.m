@@ -43,7 +43,10 @@ common_rodgers_initializations1
 
 %---------------------------------------------------------------------------
 
-get_inv_se_rcov
+figure(12); clf;
+
+iaSequential = driver.iaSequential;
+get_inv_se_rcov_allchans_allparams   %% iaSequential = -1
 
 %---------------------------------------------------------------------------
 
@@ -171,6 +174,10 @@ for ii = 1 : driver.oem.nloop
 
     figure(8); clf; plot(f(inds),raBTdeltan,'k.-',f(inds),k(:,1:6),'linewidth',2);
       hl = legend('rate','CO2','N2O','CH4','CFC11','CFC12','stemp','location','best','fontsize',10);
+    figure(8); clf; plot(f(inds),raBTdeltan,'k.-',f(inds),k(:,1:6),f(inds),sum(k(:,driver.jacobian.water_i),2),f(inds),sum(k(:,driver.jacobian.temp_i),2),f(inds),sum(k(:,driver.jacobian.ozone_i),2),'linewidth',2);
+      hl = legend('rate','CO2','N2O','CH4','CFC11','CFC12','stemp','WV(z)','T(z)','O3(z)','location','best','fontsize',10);
+    figure(8); clf; plot(f(inds),raBTdeltan,'k.-',f(inds),k(:,[1 2 3 6]),f(inds),sum(k(:,driver.jacobian.water_i),2),f(inds),sum(k(:,driver.jacobian.temp_i),2),f(inds),sum(k(:,driver.jacobian.ozone_i),2),'linewidth',2);
+      hl = legend('rate','CO2','N2O','CH4','stemp','WV(z)','T(z)','O3(z)','location','best','fontsize',10);
 
     figure(9); clf; plot(f(inds),raBTdeltan,'k.-',...
                          f(inds),sum(k(:,6+0*numlay+(1:numlay)),2),f(inds),sum(k(:,6+1*numlay+(1:numlay)),2),f(inds),sum(k(:,6+2*numlay+(1:numlay)),2),'linewidth',2)
@@ -254,6 +261,11 @@ end
 %  %%% actually we never did this
 %  %%% rodgers_rate = rodgers_rate + xb;  %% if you started out with non zero z priori
 %end
+
+iKey = -1;
+if iKey > 0
+  keyboard_nowindow
+end
 
 do_the_dof_avg_kernel
 
