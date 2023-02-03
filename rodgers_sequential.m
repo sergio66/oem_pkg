@@ -75,16 +75,16 @@ seSave         = se;
 inv_seSave     = inv_se;
 rcovSave       = driver.oem.cov;
 rSave          = r;
-rcovSave2      = rcov2;
-rSave2         = r2;
-if exist('rcov210')
-  rcovSave210    = rcov210;
-  rSave210       = r210;
-end
-if exist('rcov214')
-  rcovSave214    = rcov214;
-  rSave214       = r214;
-end
+%rcovSave2      = rcov2;
+%rSave2         = r2;
+%if exist('rcov210')
+%  rcovSave210    = rcov210;
+%  rSave210       = r210;
+%end
+%if exist('rcov214')
+%  rcovSave214    = rcov214;
+%  rSave214       = r214;
+%end
 kSave          = k;
 xbSave         = xb;
 xnSave         = xn;
@@ -115,9 +115,23 @@ for iiS = 1 : length(iaSequential)
   fuse = f(inds);
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  [iUseRetrParam,iUseChan] = get_sequential_indices_params(airsL2_chans_set,airsL2_list_set,airsL2_IDs_set,fairs0,chanIDairs,fuse,inds,xbSave,driver,iSequential);
+
+  iNXYZLay = 4; %% lowest 4
+  iNXYZLay = 6; %% lowest 6
+
+  [iUseRetrParam,iUseChan] = get_sequential_indices_params(airsL2_chans_set,airsL2_list_set,airsL2_IDs_set,fairs0,chanIDairs,fuse,inds,xbSave,driver,iSequential,iNXYZLay);
   plot(iUseChan,f(inds(iUseChan)),'.'); xlabel('iUseChan'); ylabel('f(inds(iUseChan))'); title(['iSequential = ' num2str(iSequential)]); 
   %disp('ret to continue'); pause
+
+  se = seSave(iUseChan,iUseChan);          %% iSequential ~100 channels
+  inv_se = inv_seSave(iUseChan,iUseChan);  %% iSequential ~100 channels
+  k = kSave(iUseChan,iUseRetrParam);       %% iSequential ~100 channels,~20 params
+  xn = xnSave(iUseRetrParam);              %% iSequential ~20 params
+  xb = xbSave(iUseRetrParam);              %% iSequential ~20 params
+  raBTdeltan = raBTdeltanSave(iUseChan);   %% iSequential ~100 channels
+  qrenorm = qrenormSave(iUseRetrParam);    %% iSequential ~20 params
+
+  get_inv_se_rcov_iSequential   %% this would make afresh : rc,rcov and thus r
 
   disp(' .................... >>>>>>>>>>> -------------------- <<<<<<<<<<<<< .....................')
   disp('starting iSequential loop physical vars : [xbSave(ImportantParam) xnSave(ImportantParam) xb(ImportantParamX) xn(ImportantParamX)] ...')
@@ -130,14 +144,16 @@ for iiS = 1 : length(iaSequential)
     iImportantParamX = [1 1 1 1    1+length(driver.jacobian.water_i) 2 1+length(driver.jacobian.water_i) 2 1+length(driver.jacobian.water_i) 2];
   elseif iSequential == 210
     disp(' ... and where ImportantParamX = ST ST ST ST WVz(GND GND+4) WVz(GND GND+4) Tz(GND TOA)')
-    iImportantParamX = [1 1 1 1    5 2 5 2 length(iUseRetrParam) 6];
+    iImportantParamX = [1 1 1 1    2+iNXYZLay-1 2 2+iNXYZLay-1 2 length(iUseRetrParam) 2+iNXYZLay];
   elseif iSequential == 214
     disp(' ... and where ImportantParamX = ST ST ST ST WVz(GND GND+4) WVz(GND GND+4) Tz(GND GND+4)')
-    iImportantParamX = [1 1 1 1    5 2 5 2 length(iUseRetrParam) 6];
+    iImportantParamX = [1 1 1 1    2+iNXYZLay-1 2 2+iNXYZLay-1 2 length(iUseRetrParam) 2+iNXYZLay;]
   elseif iSequential == 60 | iSequential == 100
     disp(' ... and where ImportantParamX = 4xwvz/o3z(1) wvz/o3z(GND TOA) wvz/o3z(GND TOA) wvz/o3z(GND TOA)')
     iImportantParamX = [1 1 1 1    length(driver.jacobian.water_i) 1 length(driver.jacobian.water_i) 1 length(driver.jacobian.water_i) 1];
   end
+
+  fprintf(1,'iSequential = %3i length(iUseRetrParam) = %3i length(iUseChan) = %3i \n',iSequential,length(iUseRetrParam),length(iUseChan))
 
   junk = [xbSave(iImportantParam).*driver.qrenorm(iImportantParam)' xnSave(iImportantParam).*driver.qrenorm(iImportantParam)' ...
           xb(iImportantParamX).*driver.qrenorm(iUseRetrParam(iImportantParamX))' xn(iImportantParamX).*driver.qrenorm(iUseRetrParam(iImportantParamX))'];
@@ -150,16 +166,6 @@ for iiS = 1 : length(iaSequential)
   %-------------------------
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-  se = seSave(iUseChan,iUseChan);          %% iSequential ~100 channels
-  inv_se = inv_seSave(iUseChan,iUseChan);  %% iSequential ~100 channels
-  k = kSave(iUseChan,iUseRetrParam);       %% iSequential ~100 channels,~20 params
-  xn = xnSave(iUseRetrParam);              %% iSequential ~20 params
-  xb = xbSave(iUseRetrParam);              %% iSequential ~20 params
-  raBTdeltan = raBTdeltanSave(iUseChan);   %% iSequential ~100 channels
-  qrenorm = qrenormSave(iUseRetrParam);    %% iSequential ~20 params
-
-  get_inv_se_rcov_iSequential   %% this would make afresh : rc,rcov and thus r
 
   figure(21);
     plot(fuse,driver.rateset.rates(inds),'b.',fuse(iUseChan),driver.rateset.rates(inds(iUseChan)),'r')
@@ -230,7 +236,7 @@ for iiS = 1 : length(iaSequential)
     iDebug = -1;
     if iDebug > 0
 
-      %addpath /home/sergio/MATLABCODE; keyboard_nowindow
+      %addpath /home/sergio/MATLABCODE; 
       figure(1); plot(f(inds(iUseChan)),k); grid
       figure(1); plot(f(inds(iUseChan)),k(:,1:5)); grid
       figure(2); pcolor(inv_se); shading flat; colorbar
@@ -271,19 +277,30 @@ for iiS = 1 : length(iaSequential)
     figure(12); 
     if iSequential == -1
       subplot(131); plot(ah0(driver.jacobian.water_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.water_i),1:length(driver.jacobian.water_i),'r.-'); title('WV'); plotaxis2; set(gca,'ydir','reverse')
-      subplot(132); plot(ah0(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'r.-');   title('T'); plotaxis2; set(gca,'ydir','reverse')
+        ylim([1 length(driver.jacobian.water_i)+1]);
+      subplot(132); plot(ah0(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'r.-');   title('T');  plotaxis2; set(gca,'ydir','reverse')
+        ylim([1 length(driver.jacobian.water_i)+1]);
       subplot(133); plot(ah0(driver.jacobian.ozone_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.ozone_i),1:length(driver.jacobian.water_i),'r.-'); title('O3'); plotaxis2; set(gca,'ydir','reverse')
+        ylim([1 length(driver.jacobian.water_i)+1]);
     elseif iSequential == 60
       subplot(131); plot(ah0,1:length(driver.jacobian.water_i),'b',ah1,1:length(driver.jacobian.water_i),'r.-'); title('WV'); plotaxis2; set(gca,'ydir','reverse')
+        ylim([1 length(driver.jacobian.water_i)+1]);
     elseif iSequential == 150
       subplot(132); plot(ah0(1),length(ah0),'bo',ah0(2:length(ah0)),1:length(ah0)-1,'b',ah1(1),length(ah0),'ro',ah1(2:length(ah0)),1:length(ah0)-1,'r.-');  title('T'); plotaxis2; set(gca,'ydir','reverse')
+        ylim([1 length(driver.jacobian.water_i)+1]);
     elseif iSequential == 210
+      junk = 2:3;
       subplot(132); plot(ah0(1),length(driver.jacobian.water_i)+1,'bo',ah0(6:length(ah0)),1:length(ah0)-5,'b',...
                          ah1(1),length(driver.jacobian.water_i)+1,'ro',ah1(6:length(ah0)),1:length(ah0)-5,'r.-');  title('T'); plotaxis2; set(gca,'ydir','reverse')
+        ylim([1 length(driver.jacobian.water_i)+1]);
     elseif iSequential == 214
-      subplot(132); plot(ah0(1),5,'bo',ah0(6:9),1:4,'b',ah1(1),5,'ro',ah1(6:9),1:4,'r.-');  title('T'); plotaxis2; set(gca,'ydir','reverse')
+      junk = 2:iNXYZLay+1;
+      subplot(131); plot(ah0(junk),1:iNXYZLay,'b',ah1(junk),1:iNXYZLay,'r.-');       title('WV'); plotaxis2; set(gca,'ydir','reverse'); ylim([1 iNXYZLay+1]);
+      junk = (2:iNXYZLay+1)+iNXYZLay;
+      subplot(132); plot(ah0(1),iNXYZLay+1,'bo',ah0(junk),1:iNXYZLay,'b',ah1(1),iNXYZLay+1,'ro',ah1(junk),1:iNXYZLay,'r.-');  title('T'); plotaxis2; set(gca,'ydir','reverse')
     elseif iSequential == 100
       subplot(133); plot(ah0,1:length(driver.jacobian.ozone_i),'b',ah1,1:length(driver.jacobian.ozone_i),'r.-'); title('O3'); plotaxis2; set(gca,'ydir','reverse')
+        ylim([1 length(driver.jacobian.water_i)+1]);
     end
 
     figure(1); 

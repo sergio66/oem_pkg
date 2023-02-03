@@ -8,6 +8,8 @@
  error('kjsf')
 %}
 
+iTik = 1; %% order of tikonov = 0,1,2  DEFAULT
+
 % this is basically iSequential == -1 == allchans, allparams
 % but can use for all iSequential
 % Do this once to save time, assume diagonal, no need for pinv   ORIG 201
@@ -69,7 +71,7 @@ elseif invtype == 5
 end
 
 % Use following line for only Tikhonov reg THIS SHOULD NOT BE INVERTED
-l = get_l(driver.jacobian.numlays,1);    
+l = get_l(driver.jacobian.numlays,iTik);    
 s = transpose(l)*l;
 
 %% now build the Tikhonov regularization block matrix, using "s"
@@ -98,7 +100,12 @@ switch driver.oem.reg_type
     disp('Incorrect choice driver.oem.reg_type')
 end
 
+return
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% these are basically wrong, we should not be subsetting from inv(rcov(allparams)) 
+%% and instead start with small rov(fewparams) and then do inverse
+%{
 if length(iaSequential) > 1
   X2 = driver.oem.cov;
   reducefact = 1;
@@ -125,7 +132,7 @@ if length(iaSequential) > 1
   end
   
   % Use following line for only Tikhonov reg THIS SHOULD NOT BE INVERTED
-  l = get_l(driver.jacobian.numlays,1);    
+  l = get_l(driver.jacobian.numlays,iTik);    
   s = transpose(l)*l;
   
   %% now build the Tikhonov regularization block matrix, using "s"
@@ -202,7 +209,7 @@ if length(intersect(iaSequential,210)) == 1
   end
   
   % Use following line for only Tikhonov reg THIS SHOULD NOT BE INVERTED
-  l = get_l(driver.jacobian.numlays,1);    
+  l = get_l(driver.jacobian.numlays,iTik);    
   s = transpose(l)*l;
   
   %% now build the Tikhonov regularization block matrix, using "s"
@@ -244,9 +251,13 @@ if length(intersect(iaSequential,214)) == 1
   reducefact = sqrt(2);
   couplefact = 0.1;
   couplefact = 0.5;
-  ioffsetWV = length(driver.jacobian.scalar_i) + length(driver.jacobian.water_i) - 3;
-  ioffsetT  = length(driver.jacobian.scalar_i) + length(driver.jacobian.water_i) + length(driver.jacobian.temp_i) - 3;
 
+  iNXYZLay = 4; %% lowest 4
+  iNXYZLay = 6; %% lowest 6
+
+  ioffsetWV = length(driver.jacobian.scalar_i) + length(driver.jacobian.water_i) - (iNXYZLay-1);
+  ioffsetT  = length(driver.jacobian.scalar_i) + length(driver.jacobian.water_i) + length(driver.jacobian.temp_i) - (iNXYZLay-1);
+  
   rcov210 = driver.oem.cov;
   X210 = driver.oem.cov;
   X210 = X210/(reducefact*reducefact); %% make unc^2 in parameters reducefact times 
@@ -255,8 +266,8 @@ if length(intersect(iaSequential,214)) == 1
   boo = diag(rcov210);
   booT  = sqrt(boo(driver.jacobian.temp_i));
   booWV = sqrt(boo(driver.jacobian.water_i));
-  for iiii = 1 : 4
-    for jjjj = 1 : 4
+  for iiii = 1 : iNXYZLay
+    for jjjj = 1 : iNXYZLay
       if iiii ~= jjjj
         rcov210(ioffsetWV+iiii,ioffsetT+jjjj) = couplefact*booT(iiii)*booWV(jjjj);
         rcov210(ioffsetT+iiii,ioffsetWV+jjjj) = couplefact*booT(iiii)*booWV(jjjj);
@@ -284,7 +295,7 @@ if length(intersect(iaSequential,214)) == 1
   end
   
   % Use following line for only Tikhonov reg THIS SHOULD NOT BE INVERTED
-  l = get_l(driver.jacobian.numlays,1);    
+  l = get_l(driver.jacobian.numlays,iTik);    
   s = transpose(l)*l;
   
   %% now build the Tikhonov regularization block matrix, using "s"
@@ -314,8 +325,8 @@ if length(intersect(iaSequential,214)) == 1
   end  
 
   if length(intersect(iaSequential,214)) == 1
-    r214    = r210;
+    R214    = r210;
     rcov214 = rcov210;
   end
 end
-
+%}

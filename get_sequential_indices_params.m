@@ -1,4 +1,8 @@
-function [iUseRetrParam,iUseChan] = get_sequential_indices_params(airsL2_chans_set,airsL2_list_set,airsL2_IDs_set,fairs0,chanIDairs,fuse,inds,xbSave,driver,iSequential);
+function [iUseRetrParam,iUseChan] = get_sequential_indices_params(airsL2_chans_set,airsL2_list_set,airsL2_IDs_set,fairs0,chanIDairs,fuse,inds,xbSave,driver,iSequential,iNXYZLay);
+
+if nargin == 10
+  iNXYZLay = 6;
+end
 
 if iSequential == -1 
   %% nothing to do, use all chans, retrieve all geophys params
@@ -36,8 +40,9 @@ elseif iSequential == 210 %% = 150 + 60
   [~,iUseChan,~] = intersect(inds,union(iA,iB));
 
 elseif iSequential == 214  %% = 150 + 60
-  %% STEMP, 15 um T(z) and WV(z) lowest 4 layers
-  iUseRetrParam = [6 driver.jacobian.water_i(length(driver.jacobian.water_i)-3:length(driver.jacobian.water_i)) driver.jacobian.temp_i(length(driver.jacobian.temp_i)-3:length(driver.jacobian.temp_i))];
+  %% STEMP, 15 um T(z) and WV(z) lowest iNXYZLay layers
+
+  iUseRetrParam = [6 driver.jacobian.water_i(length(driver.jacobian.water_i)-(iNXYZLay-1):length(driver.jacobian.water_i)) driver.jacobian.temp_i(length(driver.jacobian.temp_i)-(iNXYZLay-1):length(driver.jacobian.temp_i))];
 
   iUseChan = find((fuse > 780 & fuse <= 960) | (fuse > 1225 & fuse <= 1235));
 

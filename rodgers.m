@@ -46,6 +46,9 @@ common_rodgers_initializations1
 figure(12); clf;
 
 iaSequential = driver.iaSequential;
+if length(iaSequential) > 1 | iaSequential(1) ~= -1
+  error('this is ridgers.m .. expect driver.iaSequential == -1')
+end
 get_inv_se_rcov_allchans_allparams   %% iaSequential = -1
 
 %---------------------------------------------------------------------------
@@ -162,7 +165,8 @@ for ii = 1 : driver.oem.nloop
       thefitr      = thefitr + xn(ix)*m_ts_jac(:,ix)';
       thefitrdelta = thefitrdelta + deltax(ix)*m_ts_jac(:,ix)';
     end
-    figure(7); plot(f(inds),raBTdeltan,'c',f(inds),thefitrdelta(inds),'k',f(inds),raBTdeltan'-thefitrdelta(inds),'r','linewidth',2); plotaxis2; title('(c) raBTdeltaN to be fitted (k) fit (r) diff')
+    figure(7); plot(f(inds),raBTdeltan,'c',f(inds),thefitrdelta(inds),'k',f(inds),raBTdeltan'-thefitrdelta(inds),'r','linewidth',2); plotaxis2; 
+    title('(c) raBTdeltaN to be fitted (k) fit (r) diff')
     hold on
       plot(f(inds),+driver.rateset.unc_rates(inds),'color',[1 1 1]*0.75);
       plot(f(inds),-driver.rateset.unc_rates(inds),'color',[1 1 1]*0.75);
