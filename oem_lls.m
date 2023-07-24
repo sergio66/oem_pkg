@@ -32,6 +32,11 @@ if driver.oem.dofit
     [rodgers_rate,errorx,dofs,cdofs,gain,kern,r,se,inv_se,se_errors,kern_water,kern_temp,kern_ozone,bestloop,raBTdeltan00] = rodgers_sequential(driver,aux);
   end
 
+  wxrodgers_rate = rodgers_rate';
+  fprintf(1,'in midst of exiting oem_lls.m >>>>>> GND-2/GN-1/GND   WV and T, ST <<<<<<<<<< in midst of exiting oem_lls.m \n')
+  junk = [wxrodgers_rate(driver.jacobian.water_i(end-3):driver.jacobian.water_i(end)); wxrodgers_rate(driver.jacobian.temp_i(end-3):driver.jacobian.temp_i(end)); wxrodgers_rate(6)];
+  fprintf(1,'%8.6f %8.6f %8.6f %8.6f      %8.6f %8.6f %8.6f %8.6f     %8.6f \n',junk);
+
   % Save terms used in the Se error matrix
   driver.oem.forwardmodel_errors = se_errors.fmerrors;
   driver.oem.inv_se              = inv_se;
@@ -66,6 +71,22 @@ if driver.oem.dofit
   end
   %woo = aux.m_ts_jac; whos woo thefitr
 
+  thefitrX = zeros(5,length(driver.rateset.rates));  %% trace gases(CO2/N2O/CH4), ST, Wv, T, O3
+  for ix = 1 : 3
+    thefitrX(1,:) = thefitrX(1,:) + coeffsr(ix)*aux.m_ts_jac(:,ix)';
+  end
+  for ix = 6 : 6
+    thefitrX(2,:) = thefitrX(2,:) + coeffsr(ix)*aux.m_ts_jac(:,ix)';
+  end
+  for ix = 1 : length(driver.jacobian.water_i)
+    junk = driver.jacobian.water_i(ix);
+    thefitrX(3,:) = thefitrX(3,:) + coeffsr(junk)*aux.m_ts_jac(:,junk)';
+    junk = driver.jacobian.temp_i(ix);
+    thefitrX(4,:) = thefitrX(4,:) + coeffsr(junk)*aux.m_ts_jac(:,junk)';
+    junk = driver.jacobian.ozone_i(ix);
+    thefitrX(5,:) = thefitrX(5,:) + coeffsr(junk)*aux.m_ts_jac(:,junk)';
+  end
+
   inds     = driver.jacobian.chanset;
   % Compute chisqr
   fit_minus_obs = thefitr - driver.rateset.rates'; 
@@ -75,5 +96,7 @@ if driver.oem.dofit
   driver.oem.coeffssig       = coeffssigr;
   driver.oem.fit             = thefitr;
   driver.oem.chisqr          = chisqrr;
+
+  driver.oem.fitXcomponents = thefitrX;
 
 end % do oem fit

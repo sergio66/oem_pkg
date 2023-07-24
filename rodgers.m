@@ -53,6 +53,10 @@ get_inv_se_rcov_allchans_allparams   %% iaSequential = -1
 
 %---------------------------------------------------------------------------
 
+iDebug = 0;   %% minimum debug
+%iDebug = +1;  %% tons of debug
+%iDebug = -1;  %% NO debug
+
 %whos r k inv_se
 chisqr0 = nansum(raBTdeltan'.*raBTdeltan');
 
@@ -104,8 +108,6 @@ for ii = 1 : driver.oem.nloop
   figure(7); plot(f(inds),raBTdeltan); plotaxis2;                    title('deltaBT to fit')
   figure(8); plot(deltax.*driver.qrenorm'); plotaxis2; grid minor;   title('deltax.*qrenorm')
 
-  iDebug = +1;
-  iDebug = -1;
   if iDebug > 0
 
     %addpath /home/sergio/MATLABCODE; keyboard_nowindow
@@ -245,9 +247,6 @@ if driver.oem.nloop >= 0
   fprintf(1,'printing out successive chisqr values (upto N-1 th iterate) ... %8.6f %8.6f \n',[chisqr0 chisqr(end)])
 end
 
-iDebug = 0;   %% minimum debug
-iDebug = +1;  %% tons of debug
-iDebug = -1;  %% NO debug
 if iDebug > 0
   %% gory detail
   renormalize = driver.qrenorm';

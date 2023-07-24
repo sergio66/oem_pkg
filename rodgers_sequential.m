@@ -63,11 +63,17 @@ iaSequential = driver.iaSequential;
 
 iaSequential_orig = iaSequential;
 if iaSequential(end) ~= -1
-  %% need this to do the DOF calcs
+  %% need this to do the DOF calcs 
+  %% see  ~/MATLABCODE/CRODGERS_FAST_CLOUD/RODGERS/RODGERS21/rodgers21_reg_and_cov_regularization.m
   disp(' ... artificially adding on iSequential = -1 at the end, to do DofF')
   iaSequential = [iaSequential -1];
 end
 
+if (xb(1:3)) == [0 0 0] & driver.topts.ocb_set == 0
+  iFitTraceGas = +1;
+else
+  iFitTraceGas = -1;
+end
 get_inv_se_rcov_allchans_allparams   %% iaSequential = -1
 
 qrenormSave    = driver.qrenorm;
@@ -101,7 +107,18 @@ raBTdeltaIterate(:,1) = raBTdeltanSave;
 %% PLEASE NOTE BENE that for AIRS TRENDS length(f) = 2645, and f = h.vchan for AIRS L1C so eg f(1520) = 1231.3 cm-1
 %%    so basically chanIDairs(1520) = 1291 and f = fairs0
 
+%iDebug = +1;
+iDebug = -1;
+
+iKeyBoard = +1;
+iKeyBoard = -1;
+
+fprintf(1,'iSequential = %3i : GND-2/GN-1/GND   WV and T, ST entering OEM \n',-9999);
+  junk = [xbSave(driver.jacobian.water_i(end-3):driver.jacobian.water_i(end)); xbSave(driver.jacobian.temp_i(end-3):driver.jacobian.temp_i(end)); xbSave(6)];
+  fprintf(1,'%8.6f %8.6f %8.6f %8.6f      %8.6f %8.6f %8.6f %8.6f     %8.6f \n',junk);
+
 for iiS = 1 : length(iaSequential)
+  disp(' ')
   iSequential = iaSequential(iiS);
   if iiS <= length(iaSequential_orig)
     iYesThisIsFine = +1;
@@ -119,8 +136,8 @@ for iiS = 1 : length(iaSequential)
   iNXYZLay = 4; %% lowest 4
   iNXYZLay = 6; %% lowest 6
 
-  [iUseRetrParam,iUseChan] = get_sequential_indices_params(airsL2_chans_set,airsL2_list_set,airsL2_IDs_set,fairs0,chanIDairs,fuse,inds,xbSave,driver,iSequential,iNXYZLay);
-  plot(iUseChan,f(inds(iUseChan)),'.'); xlabel('iUseChan'); ylabel('f(inds(iUseChan))'); title(['iSequential = ' num2str(iSequential)]); 
+  [iUseRetrParam,iUseChan] = get_sequential_indices_params(airsL2_chans_set,airsL2_list_set,airsL2_IDs_set,fairs0,chanIDairs,fuse,inds,xbSave,driver,iSequential,iNXYZLay,iFitTraceGas);
+  figure(21); plot(iUseChan,f(inds(iUseChan)),'x-'); xlabel('iUseChan'); ylabel('f(inds(iUseChan))'); title(['iSequential = ' num2str(iSequential)]); 
   %disp('ret to continue'); pause
 
   se = seSave(iUseChan,iUseChan);          %% iSequential ~100 channels
@@ -134,23 +151,29 @@ for iiS = 1 : length(iaSequential)
   get_inv_se_rcov_iSequential   %% this would make afresh : rc,rcov and thus r
 
   disp(' .................... >>>>>>>>>>> -------------------- <<<<<<<<<<<<< .....................')
-  disp('starting iSequential loop physical vars : [xbSave(ImportantParam) xnSave(ImportantParam) xb(ImportantParamX) xn(ImportantParamX)] ...')
+  disp('starting iSequential loop physical vars : displaying ')
+  disp('   [xbSave(ImportantParam) xnSave(ImportantParam) xb(ImportantParamX) xn(ImportantParamX)] ')
+  disp(' where iImportantParam === FIXED = [CO2 N2O CH4 STEMP     WV(GND/TOA)     TZ(GND/TOA)      O3(GND/TOA) ....')
   iImportantParam  = [1 2 3 6 driver.jacobian.water_i(end) driver.jacobian.water_i(1) driver.jacobian.temp_i(end) driver.jacobian.temp_i(1) driver.jacobian.ozone_i(end) driver.jacobian.ozone_i(1)];
   if iSequential == -1
-    disp(' ... and where ImportantParamX = CO2 CH4 N2O ST wvz(GND TOA) Tz(GND TOA) o3z(GND TOA)')
+    disp(' ... and where (variable) ImportantParamX = CO2 CH4 N2O ST wvz(GND TOA) Tz(GND TOA) o3z(GND TOA)')
     iImportantParamX = [1 2 3 6    driver.jacobian.water_i(end) driver.jacobian.water_i(1) driver.jacobian.temp_i(end) driver.jacobian.temp_i(1) driver.jacobian.ozone_i(end) driver.jacobian.ozone_i(1)];
   elseif iSequential == 150
-    disp(' ... and where ImportantParamX = ST ST ST ST Tz(GND TOA) Tz(GND TOA) Tz(GND TOA)')
-    iImportantParamX = [1 1 1 1    1+length(driver.jacobian.water_i) 2 1+length(driver.jacobian.water_i) 2 1+length(driver.jacobian.water_i) 2];
+    disp(' ... and where (variable) ImportantParamX = ST ST ST ST Tz(GND TOA) Tz(GND TOA) Tz(GND TOA)')
+    if iFitTraceGas == -1
+      iImportantParamX = [1 1 1 1    1+length(driver.jacobian.water_i) 2 1+length(driver.jacobian.water_i) 2 1+length(driver.jacobian.water_i) 2];
+    else
+      iImportantParamX = [2 2 2 2    2+length(driver.jacobian.water_i) 3 2+length(driver.jacobian.water_i) 3 2+length(driver.jacobian.water_i) 3];
+    end
   elseif iSequential == 210
-    disp(' ... and where ImportantParamX = ST ST ST ST WVz(GND GND+4) WVz(GND GND+4) Tz(GND TOA)')
+    disp(' ... and where (variable) ImportantParamX = ST ST ST ST WVz(GND GND+4) WVz(GND GND+4) Tz(GND TOA)')
     iImportantParamX = [1 1 1 1    2+iNXYZLay-1 2 2+iNXYZLay-1 2 length(iUseRetrParam) 2+iNXYZLay];
   elseif iSequential == 214
-    disp(' ... and where ImportantParamX = ST ST ST ST WVz(GND GND+4) WVz(GND GND+4) Tz(GND GND+4)')
+    disp(' ... and where (variable) ImportantParamX = ST ST ST ST WVz(GND GND+4) WVz(GND GND+4) Tz(GND GND+4)')
     iImportantParamX = [1 1 1 1    2+iNXYZLay-1 2 2+iNXYZLay-1 2 length(iUseRetrParam) 2+iNXYZLay;]
   elseif iSequential == 60 | iSequential == 100
-    disp(' ... and where ImportantParamX = 4xwvz/o3z(1) wvz/o3z(GND TOA) wvz/o3z(GND TOA) wvz/o3z(GND TOA)')
-    iImportantParamX = [1 1 1 1    length(driver.jacobian.water_i) 1 length(driver.jacobian.water_i) 1 length(driver.jacobian.water_i) 1];
+    disp(' ... and where (variable) ImportantParamX = 4 times wvz/o3z(1)     wvz/o3z(GND TOA) wvz/o3z(1) wvz/o3z(GND TOA) wvz/o3z(GND TOA) wvz/o3z(GND TOA)')
+    iImportantParamX = [1 1 1 1    length(driver.jacobian.water_i) 1    length(driver.jacobian.water_i) 1    length(driver.jacobian.water_i) 1];
   end
 
   fprintf(1,'iSequential = %3i length(iUseRetrParam) = %3i length(iUseChan) = %3i \n',iSequential,length(iUseRetrParam),length(iUseChan))
@@ -232,8 +255,6 @@ for iiS = 1 : length(iaSequential)
     figure(7); plot(fuse(iUseChan),raBTdeltan); plotaxis2;             title('raBTdeltaBT to fit')
     figure(8); plot(deltax.*driver.qrenorm(iUseRetrParam)'); plotaxis2; grid minor;   title('deltax.*qrenorm')
   
-    iDebug = +1;
-    iDebug = -1;
     if iDebug > 0
 
       %addpath /home/sergio/MATLABCODE; 
@@ -262,7 +283,12 @@ for iiS = 1 : length(iaSequential)
     xnbefore = xn;
 
     if iSequential == 150
-      fprintf(1,'deltax(SST) = %8.5f \n', deltax(1).*qrenorm(1))
+      if iFitTraceGas == -1
+        fprintf(1,'deltax(SST) = %8.5f \n', deltax(1).*qrenorm(1))
+      else
+        fprintf(1,'deltax(CO2) = %8.5f \n', deltax(1).*qrenorm(1))
+        fprintf(1,'deltax(SST) = %8.5f \n', deltax(2).*qrenorm(2))
+      end
     end
 
     rodgers_rate = real(xn + deltax);
@@ -274,35 +300,77 @@ for iiS = 1 : length(iaSequential)
     ah0 = xn.*driver.qrenorm(iUseRetrParam)';
     dah = deltax.*driver.qrenorm(iUseRetrParam)';
     ah1 = real(xn+deltax).*driver.qrenorm(iUseRetrParam)';
-    figure(12); 
-    if iSequential == -1
-      subplot(131); plot(ah0(driver.jacobian.water_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.water_i),1:length(driver.jacobian.water_i),'r.-'); title('WV'); plotaxis2; set(gca,'ydir','reverse')
-        ylim([1 length(driver.jacobian.water_i)+1]);
-      subplot(132); plot(ah0(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'r.-');   title('T');  plotaxis2; set(gca,'ydir','reverse')
-        ylim([1 length(driver.jacobian.water_i)+1]);
-      subplot(133); plot(ah0(driver.jacobian.ozone_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.ozone_i),1:length(driver.jacobian.water_i),'r.-'); title('O3'); plotaxis2; set(gca,'ydir','reverse')
-        ylim([1 length(driver.jacobian.water_i)+1]);
-    elseif iSequential == 60
-      subplot(131); plot(ah0,1:length(driver.jacobian.water_i),'b',ah1,1:length(driver.jacobian.water_i),'r.-'); title('WV'); plotaxis2; set(gca,'ydir','reverse')
-        ylim([1 length(driver.jacobian.water_i)+1]);
-    elseif iSequential == 150
-      subplot(132); plot(ah0(1),length(ah0),'bo',ah0(2:length(ah0)),1:length(ah0)-1,'b',ah1(1),length(ah0),'ro',ah1(2:length(ah0)),1:length(ah0)-1,'r.-');  title('T'); plotaxis2; set(gca,'ydir','reverse')
-        ylim([1 length(driver.jacobian.water_i)+1]);
-    elseif iSequential == 210
-      junk = 2:3;
-      subplot(132); plot(ah0(1),length(driver.jacobian.water_i)+1,'bo',ah0(6:length(ah0)),1:length(ah0)-5,'b',...
-                         ah1(1),length(driver.jacobian.water_i)+1,'ro',ah1(6:length(ah0)),1:length(ah0)-5,'r.-');  title('T'); plotaxis2; set(gca,'ydir','reverse')
-        ylim([1 length(driver.jacobian.water_i)+1]);
-    elseif iSequential == 214
-      junk = 2:iNXYZLay+1;
-      subplot(131); plot(ah0(junk),1:iNXYZLay,'b',ah1(junk),1:iNXYZLay,'r.-');       title('WV'); plotaxis2; set(gca,'ydir','reverse'); ylim([1 iNXYZLay+1]);
-      junk = (2:iNXYZLay+1)+iNXYZLay;
-      subplot(132); plot(ah0(1),iNXYZLay+1,'bo',ah0(junk),1:iNXYZLay,'b',ah1(1),iNXYZLay+1,'ro',ah1(junk),1:iNXYZLay,'r.-');  title('T'); plotaxis2; set(gca,'ydir','reverse')
-    elseif iSequential == 100
-      subplot(133); plot(ah0,1:length(driver.jacobian.ozone_i),'b',ah1,1:length(driver.jacobian.ozone_i),'r.-'); title('O3'); plotaxis2; set(gca,'ydir','reverse')
-        ylim([1 length(driver.jacobian.water_i)+1]);
-    end
 
+    figure(12);
+    if ~isfield(aux,'pavg')
+      if iSequential == -1
+        subplot(131); plot(ah0(driver.jacobian.water_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.water_i),1:length(driver.jacobian.water_i),'r.-'); title('WV'); plotaxis2; set(gca,'ydir','reverse')
+          ylim([1 length(driver.jacobian.water_i)+1]);
+        subplot(132); plot(ah0(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'r.-');   title('T');  plotaxis2; set(gca,'ydir','reverse')
+          ylim([1 length(driver.jacobian.water_i)+1]);
+        subplot(133); plot(ah0(driver.jacobian.ozone_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.ozone_i),1:length(driver.jacobian.water_i),'r.-'); title('O3'); plotaxis2; set(gca,'ydir','reverse')
+          ylim([1 length(driver.jacobian.water_i)+1]);
+      elseif iSequential == 60
+        subplot(131); plot(ah0,1:length(driver.jacobian.water_i),'b',ah1,1:length(driver.jacobian.water_i),'r.-'); title('WV'); plotaxis2; set(gca,'ydir','reverse')
+          ylim([1 length(driver.jacobian.water_i)+1]);
+      elseif iSequential == 150
+        if iFitTraceGas == -1
+          subplot(132); plot(ah0(1),length(ah0),'bo',ah0(2:length(ah0)),1:length(ah0)-1,'b',ah1(1),length(ah0),'ro',ah1(2:length(ah0)),1:length(ah0)-1,'r.-');  title('T'); plotaxis2; set(gca,'ydir','reverse')
+            ylim([1 length(driver.jacobian.water_i)+1]);
+        else
+          subplot(132); plot(ah0(2),length(ah0)-1,'bo',ah0(3:length(ah0)),1:length(ah0)-2,'b',ah1(2),length(ah0)-1,'ro',ah1(3:length(ah0)),1:length(ah0)-2,'r.-');  title('T'); plotaxis2; set(gca,'ydir','reverse')
+            ylim([1 length(driver.jacobian.water_i)+1]);
+        end
+      elseif iSequential == 210
+        junk = 2:3;
+        subplot(132); plot(ah0(1),length(driver.jacobian.water_i)+1,'bo',ah0(6:length(ah0)),1:length(ah0)-5,'b',...
+                           ah1(1),length(driver.jacobian.water_i)+1,'ro',ah1(6:length(ah0)),1:length(ah0)-5,'r.-');  title('T'); plotaxis2; set(gca,'ydir','reverse')
+          ylim([1 length(driver.jacobian.water_i)+1]);
+      elseif iSequential == 214
+        junk = 2:iNXYZLay+1;
+        subplot(131); plot(ah0(junk),1:iNXYZLay,'b',ah1(junk),1:iNXYZLay,'r.-');       title('WV'); plotaxis2; set(gca,'ydir','reverse'); ylim([1 iNXYZLay+1]);
+        junk = (2:iNXYZLay+1)+iNXYZLay;
+        subplot(132); plot(ah0(1),iNXYZLay+1,'bo',ah0(junk),1:iNXYZLay,'b',ah1(1),iNXYZLay+1,'ro',ah1(junk),1:iNXYZLay,'r.-');  title('T'); plotaxis2; set(gca,'ydir','reverse')
+      elseif iSequential == 100
+        subplot(133); plot(ah0,1:length(driver.jacobian.ozone_i),'b',ah1,1:length(driver.jacobian.ozone_i),'r.-'); title('O3'); plotaxis2; set(gca,'ydir','reverse')
+          ylim([1 length(driver.jacobian.water_i)+1]);
+      end
+
+    elseif isfield(aux,'pavg')
+      if iSequential == -1
+        subplot(131); plot(ah0(driver.jacobian.water_i),aux.pavg,'b',ah1(driver.jacobian.water_i),aux.pavg,'r.-'); title('WV'); plotaxis2; set(gca,'ydir','reverse')
+          ylim([1 aux.spres]);
+        subplot(132); plot(ah0(driver.jacobian.temp_i),aux.pavg,'b',ah1(driver.jacobian.temp_i),aux.pavg,'r.-');   title('T');  plotaxis2; set(gca,'ydir','reverse')
+          ylim([1 aux.spres]);
+        subplot(133); plot(ah0(driver.jacobian.ozone_i),aux.pavg,'b',ah1(driver.jacobian.ozone_i),aux.pavg,'r.-'); title('O3'); plotaxis2; set(gca,'ydir','reverse')
+          ylim([1 aux.spres]);
+      elseif iSequential == 60
+        subplot(131); plot(ah0,aux.pavg,'b',ah1,aux.pavg,'r.-'); title('WV'); plotaxis2; set(gca,'ydir','reverse')
+          ylim([1 aux.spres]);
+      elseif iSequential == 150
+        if iFitTraceGas == -1
+          subplot(132); plot(ah0(1),aux.spres,'bo',ah0(2:length(ah0)),aux.pavg,'b',ah1(1),aux.spres,'ro',ah1(2:length(ah0)),aux.pavg,'r.-');  title('T'); plotaxis2; set(gca,'ydir','reverse')
+            ylim([1 aux.spres]);
+        else
+          subplot(132); plot(ah0(2),aux.spres,'bo',ah0(3:length(ah0)),aux.pavg,'b',ah1(2),aux.spres,'ro',ah1(3:length(ah0)),aux.pavg,'r.-');  title('T'); plotaxis2; set(gca,'ydir','reverse')
+            ylim([1 aux.spres]);
+        end
+      elseif iSequential == 210
+        junk = 2:3;
+        subplot(132); plot(ah0(1),length(driver.jacobian.water_i)+1,'bo',ah0(6:length(ah0)),1:length(ah0)-5,'b',...
+                           ah1(1),length(driver.jacobian.water_i)+1,'ro',ah1(6:length(ah0)),1:length(ah0)-5,'r.-');  title('T'); plotaxis2; set(gca,'ydir','reverse')
+          ylim([1 aux.spres]);
+      elseif iSequential == 214
+        junk = 2:iNXYZLay+1;
+        subplot(131); plot(ah0(junk),1:iNXYZLay,'b',ah1(junk),1:iNXYZLay,'r.-');       title('WV'); plotaxis2; set(gca,'ydir','reverse'); ylim([1 iNXYZLay+1]);
+        junk = (2:iNXYZLay+1)+iNXYZLay;
+        subplot(132); plot(ah0(1),iNXYZLay+1,'bo',ah0(junk),1:iNXYZLay,'b',ah1(1),iNXYZLay+1,'ro',ah1(junk),1:iNXYZLay,'r.-');  title('T'); plotaxis2; set(gca,'ydir','reverse')
+      elseif iSequential == 100
+        subplot(133); plot(ah0,aux.pavg,'b',ah1,aux.pavg,'r.-'); title('O3'); plotaxis2; set(gca,'ydir','reverse')
+          ylim([1 aux.spres]);
+      end
+    end
+  
     figure(1); 
     xn = rodgers_rate;
     xsave(iiS,ii,iUseRetrParam) = rodgers_rate;  %%% <<<< save rodgers_rate at iteration "for iiS = 1 : length(iaSequential)" "for ii = 1 : driver.oem.nloop"  >>>
@@ -315,7 +383,8 @@ for iiS = 1 : length(iaSequential)
   
       % Form the computed rates; also see lines 108-121 of oem_lls.m
       thefitr      = zeros(1,length(driver.rateset.rates)); %% this uses all params including CO2/N2O/CH4; this uses all params including CO2/N2O/CH4; all 2645 chans
-      thefitrdelta = zeros(1,length(driver.rateset.rates)); %% this just uses the params used in this iSequential round, all 2645 chans DOES NOT USE EG trace gas sometimes, or T(z)/ST sometimes, or WV sometimes , or O3 sometimes
+      thefitrdelta = zeros(1,length(driver.rateset.rates)); %% this just uses the params used in this iSequential round
+                                                            %% all 2645 chans DOES NOT USE EG trace gas sometimes, or T(z)/ST sometimes, or WV sometimes , or O3 sometimes
 
       yn = xbSave;
       yn(iUseRetrParam) = xn;            %%% this is needed for next iSequential
@@ -329,8 +398,8 @@ for iiS = 1 : length(iaSequential)
         %% this just uses the params used in this iSequential round, all 2645 chans DOES NOT USE EG trace gas sometimes, or T(z)/ST sometimes, or WV sometimes , or O3 sometimes
         thefitrdelta = thefitrdelta + deltax(ix)*m_ts_jac(:,iUseRetrParam(ix))';
       end
-      figure(7); plot(fuse(iUseChan),raBTdeltan,'c',fuse(iUseChan),thefitrdelta(inds(iUseChan)),'k',fuse(iUseChan),raBTdeltan'-thefitrdelta(inds(iUseChan)),'r','linewidth',2); plotaxis2; 
-      title('(c) raBTdeltaN to be fitted (k) fit (r) diff')
+      figure(7); plot(fuse(iUseChan),raBTdeltan,'cx-',fuse(iUseChan),thefitrdelta(inds(iUseChan)),'k',fuse(iUseChan),raBTdeltan'-thefitrdelta(inds(iUseChan)),'r','linewidth',2); plotaxis2; 
+      title(['iSequential = ' num2str(iSequential) ' \newline (c) raBTdeltaN to be fitted (k) fit (r) diff'])
       hold on
         plot(f(inds),+driver.rateset.unc_rates(inds),'color',[1 1 1]*0.75);
         plot(f(inds),-driver.rateset.unc_rates(inds),'color',[1 1 1]*0.75);
@@ -367,18 +436,26 @@ for iiS = 1 : length(iaSequential)
       plot(fuse(iUseChan),junkST,fuse(iUseChan),sum(junkWV,2),fuse(iUseChan),sum(junkTz,2),fuse(iUseChan),sum(junkO3,2)); plotaxis2; hl = legend('ST','WV','T','O3','location','best','fontsize',10); title('JAC')
 
       figure(2); clf; plot(deltax(driver.jacobian.water_i).*driver.qrenorm(driver.jacobian.water_i)',1:length(driver.jacobian.water_i),'b',...
-                           yn(driver.jacobian.water_i).*driver.qrenorm(driver.jacobian.water_i)',1:length(driver.jacobian.water_i),'r');   plotaxis2; set(gca,'ydir','reverse'); title('\delta WV');
+                           yn(driver.jacobian.water_i).*driver.qrenorm(driver.jacobian.water_i)',1:length(driver.jacobian.water_i),'r');   plotaxis2; set(gca,'ydir','reverse'); title('\delta WV and current WV');
       figure(3); clf; plot(deltax(driver.jacobian.temp_i).*driver.qrenorm(driver.jacobian.temp_i)',1:length(driver.jacobian.temp_i),'b',...
-                           yn(driver.jacobian.temp_i).*driver.qrenorm(driver.jacobian.temp_i)',1:length(driver.jacobian.temp_i),'r');      plotaxis2; set(gca,'ydir','reverse'); title('\delta Tz');
+                           yn(driver.jacobian.temp_i).*driver.qrenorm(driver.jacobian.temp_i)',1:length(driver.jacobian.temp_i),'r');      plotaxis2; set(gca,'ydir','reverse'); title('\delta Tz and current T');
       figure(4); clf; plot(deltax(driver.jacobian.ozone_i).*driver.qrenorm(driver.jacobian.ozone_i)',1:length(driver.jacobian.ozone_i),'b',...
-                           yn(driver.jacobian.ozone_i).*driver.qrenorm(driver.jacobian.ozone_i)',1:length(driver.jacobian.ozone_i),'r');  plotaxis2; set(gca,'ydir','reverse'); title('\delta O3');
+                           yn(driver.jacobian.ozone_i).*driver.qrenorm(driver.jacobian.ozone_i)',1:length(driver.jacobian.ozone_i),'r');  plotaxis2; set(gca,'ydir','reverse'); title('\delta O3 and current O3');
 
     elseif iSequential == 150
-      junkST  = k(:,1);
-      junkTz  = k(:,2:length(driver.jacobian.temp_i)+1);
-      plot(fuse(iUseChan),junkST,fuse(iUseChan),sum(junkTz,2)); plotaxis2; hl = legend('ST','T','location','best','fontsize',10); title('JAC')
-      figure(3); clf; plot(deltax(2:length(deltax)).*driver.qrenorm(driver.jacobian.temp_i)',1:length(driver.jacobian.temp_i),'b',...
-                           yn(driver.jacobian.temp_i).*driver.qrenorm(driver.jacobian.temp_i)',1:length(driver.jacobian.temp_i),'r');     plotaxis2; set(gca,'ydir','reverse'); title('\delta Tz');
+      if iFitTraceGas == -1
+        junkST  = k(:,1);
+        junkTz  = k(:,2:length(driver.jacobian.temp_i)+1);
+        plot(fuse(iUseChan),junkST,fuse(iUseChan),sum(junkTz,2)); plotaxis2; hl = legend('ST','T','location','best','fontsize',10); title('JAC')
+        figure(3); clf; plot(deltax(2:length(deltax)).*driver.qrenorm(driver.jacobian.temp_i)',1:length(driver.jacobian.temp_i),'b',...
+                             yn(driver.jacobian.temp_i).*driver.qrenorm(driver.jacobian.temp_i)',1:length(driver.jacobian.temp_i),'r');     plotaxis2; set(gca,'ydir','reverse'); title('\delta Tz');
+      else
+        junkST  = k(:,2);
+        junkTz  = k(:,3:length(driver.jacobian.temp_i)+2);
+        plot(fuse(iUseChan),junkST,fuse(iUseChan),sum(junkTz,2)); plotaxis2; hl = legend('ST','T','location','best','fontsize',10); title('JAC')
+        figure(3); clf; plot(deltax(3:length(deltax)).*driver.qrenorm(driver.jacobian.temp_i)',1:length(driver.jacobian.temp_i),'b',...
+                             yn(driver.jacobian.temp_i).*driver.qrenorm(driver.jacobian.temp_i)',1:length(driver.jacobian.temp_i),'r');     plotaxis2; set(gca,'ydir','reverse'); title('\delta Tz');
+      end
     elseif iSequential == 100
       junkO3  = k;
       plot(fuse(iUseChan),sum(junkO3,2)); plotaxis2; hl = legend('O3','location','best','fontsize',10); title('JAC')
@@ -397,7 +474,7 @@ for iiS = 1 : length(iaSequential)
     if driver.oem.doplots > 0 | iYesPlot > 0
       figure(10); clf
       figure(10); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'c.-',f(inds),thefitrdelta(inds),'k.-',f(inds),raBTzeltan,'r.-','linewidth',2); plotaxis2;
-        hl = legend('input rates','signal''= to fit after subtracting trace gas jacs','fit','signal''-fit','location','best','fontsize',8);
+        hl = legend('input rates','signal=to fit after subtracting trace gas jacs','fit','signal''-fit','location','best','fontsize',8);
         title(['rodgers.m : ADJ SIGNAL \newline obs - fit at iteration ' num2str(ii)]); pause(0.1)
   
       figure(11); clf
@@ -411,8 +488,14 @@ for iiS = 1 : length(iaSequential)
     end
   end
 
+  fprintf(1,'iSequential = %3i : GND-2/GN-1/GND   WV and T, ST before \n',iSequential);
+    junk = [xbSave(driver.jacobian.water_i(end-3):driver.jacobian.water_i(end)); xbSave(driver.jacobian.temp_i(end-3):driver.jacobian.temp_i(end)); xbSave(6)];
+    fprintf(1,'%8.6f %8.6f %8.6f %8.6f      %8.6f %8.6f %8.6f %8.6f     %8.6f \n',junk);
   xbSave(iUseRetrParam) = xn; %% this is needed for next iSequential
   xnSave(iUseRetrParam) = xn; %% this is needed for next iSequential
+  fprintf(1,'iSequential = %3i : GND-2/GN-1/GND   WV and T, ST after \n',iSequential);
+    junk = [xbSave(driver.jacobian.water_i(end-3):driver.jacobian.water_i(end)); xbSave(driver.jacobian.temp_i(end-3):driver.jacobian.temp_i(end)); xbSave(6)];
+    fprintf(1,'%8.6f %8.6f %8.6f %8.6f      %8.6f %8.6f %8.6f %8.6f     %8.6f \n',junk);
 
   figure(10); clf
   figure(10); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'c.-',f(inds),thefitrdelta(inds),'k.-',f(inds),raBTzeltan,'r.-','linewidth',2); plotaxis2;
@@ -452,9 +535,7 @@ for iiS = 1 : length(iaSequential)
     fprintf(1,'printing out successive chisqr values (upto N-1 th iterate) ... %8.5f %8.5f %8.5f \n',[chisqr0 chisqr0            xchisqr(iiS,ii)])
   end
 
-  iKey = -1;
-  iKey = +1;
-  if iKey > 0
+  if iKeyBoard > 0
     keyboard_nowindow    
   else
     pause(0.1);
@@ -469,10 +550,18 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+fprintf(1,'iSequential = %3i : GND-2/GN-1/GND   WV and T, ST exiting OEM \n',+8888);
+  junk = [xbSave(driver.jacobian.water_i(end-3):driver.jacobian.water_i(end)); xbSave(driver.jacobian.temp_i(end-3):driver.jacobian.temp_i(end)); xbSave(6)];
+  fprintf(1,'%8.6f %8.6f %8.6f %8.6f      %8.6f %8.6f %8.6f %8.6f     %8.6f \n',junk);
+
 %% now find final best
-fprintf(1,'iaSeqential chisqr = %5i %10.6f \n',[iaSequential rodgers_chisqr_iiS]);
+fprintf(1,'iaSeqential chisqr = %5i %10.6f \n',[iaSequential; rodgers_chisqr_iiS]);
 bestloop = find(rodgers_chisqr_iiS == min(rodgers_chisqr_iiS));
 rodgers_rate = rodgers_rate_iiS(bestloop,:)';
+
+fprintf(1,'iSequential = %3i : GND-2/GN-1/GND   WV and T, ST exiting OEM (best chisqr at stage %3i) \n',+9999,bestloop);
+  junk = [rodgers_rate(driver.jacobian.water_i(end-3):driver.jacobian.water_i(end)); rodgers_rate(driver.jacobian.temp_i(end-3):driver.jacobian.temp_i(end)); rodgers_rate(6)];
+  fprintf(1,'%8.6f %8.6f %8.6f %8.6f      %8.6f %8.6f %8.6f %8.6f     %8.6f \n',junk);
 
 figure(24); plot(fuse,raBTdeltaIterate,'linewidth',2); plotaxis2; hl = legend(num2str([0 [iaSequential(1:iiS)]]'),'location','best','fontsize',8); title('delta(obs-cal)')
 figure(2); hold on; plot(rodgers_rate(driver.jacobian.water_i).*driver.qrenorm(driver.jacobian.water_i)',1:length(driver.jacobian.water_i),'gx-'); plotaxis2; set(gca,'ydir','reverse'); hold off; title('\delta WV final');
@@ -483,16 +572,28 @@ figure(4); hold on; plot(rodgers_rate(driver.jacobian.ozone_i).*driver.qrenorm(d
 figure(25); plot(fuse,raBTdeltaIterate(:,nnnnS-1:nnnnS),'linewidth',2); plotaxis2; hl = legend(num2str([iaSequential(iiS-1:iiS)]'),'location','best','fontsize',8); title('delta(obs-cal)')
 
 pause(0.1);
-if iKey > 0
+if iKeyBoard > 0
   ahF = real(rodgers_rate).*driver.qrenorm(iUseRetrParam)';
   figure(12); 
+    if ~isfield(aux,'pavg')
       subplot(131); hold on; plot(ahF(driver.jacobian.water_i),1:length(driver.jacobian.water_i),'k.-'); title('WV'); plotaxis2; set(gca,'ydir','reverse'); hold off
       subplot(132); hold on; plot(ahF(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'k.-');   title('T'); plotaxis2; set(gca,'ydir','reverse'); hold off
       subplot(133); hold on; plot(ahF(driver.jacobian.ozone_i),1:length(driver.jacobian.water_i),'k.-'); title('O3'); plotaxis2; set(gca,'ydir','reverse'); hold off
+    else
+      subplot(131); hold on; plot(ahF(driver.jacobian.water_i),aux.pavg,'k.-'); title('WV'); plotaxis2; set(gca,'ydir','reverse'); hold off
+      subplot(132); hold on; plot(ahF(driver.jacobian.temp_i),aux.pavg,'k.-');   title('T'); plotaxis2; set(gca,'ydir','reverse'); hold off
+      subplot(133); hold on; plot(ahF(driver.jacobian.ozone_i),aux.pavg,'k.-'); title('O3'); plotaxis2; set(gca,'ydir','reverse'); hold off
+    end
   keyboardstr = 'this is right before we exit rodgers_sequential.m, so check carefully'; keyboard_nowindow
 end
 
+%disp('lkjhsflKSHglshgslkhglhgslhgs')
+%keyboard_nowindow
+wxrodgers_rate = rodgers_rate;
 rodgers_rate = rodgers_rate';   %% need this lousy line!!!!
+fprintf(1,'iSequential = %3i : GND-2/GN-1/GND   WV and T, ST exiting OEM exiting OEM exiting OEM rodgers_sequential.m \n',+9999);
+  junk = [wxrodgers_rate(driver.jacobian.water_i(end-3):driver.jacobian.water_i(end)); wxrodgers_rate(driver.jacobian.temp_i(end-3):driver.jacobian.temp_i(end)); wxrodgers_rate(6)];
+  fprintf(1,'%8.6f %8.6f %8.6f %8.6f      %8.6f %8.6f %8.6f %8.6f     %8.6f \n',junk);
 
 ff1 = 640; ff2 = 840;
 ff1 = 640; ff2 = 1640;

@@ -132,6 +132,8 @@ elseif iSequential == 214
   reducefact = sqrt(10)/2;
   reducefact = sqrt(2);
   reducefact = 1;
+  reducefact = sqrt(10);
+
   couplefact = 0.1;
   couplefact = 0.5;
 
@@ -195,8 +197,9 @@ elseif iSequential == 214
   %% always assumes you want to fit for WV ... may want to keep T fixed 9so no fit) and also may not want to fit O3
   if isfield(driver.oem,'alpha_temp') & isfield(driver.oem,'alpha_ozone')
     rc210 = blkdiag(zeros(lenS,lenS),driver.oem.alpha_water*s*reducefact,driver.oem.alpha_temp*s*reducefact,driver.oem.alpha_ozone*s*reducefact);
+    rc210 = blkdiag(zeros(lenS,lenS),driver.oem.alpha_water*s*reducefact^2,driver.oem.alpha_temp*s*reducefact,driver.oem.alpha_ozone*s*reducefact);
   elseif isfield(driver.oem,'alpha_temp') & ~isfield(driver.oem,'alpha_ozone')
-    rc210 = blkdiag(zeros(lenS,lenS),driver.oem.alpha_water*s*reducefact,driver.oem.alpha_temp*s*reducefact);
+    rc210 = blkdiag(zeros(lenS,lenS),driver.oem.alpha_water*s*reducefact,driver.oem.alpha_temp*s*reducefact^2);
   elseif ~isfield(driver.oem,'alpha_temp') & isfield(driver.oem,'alpha_ozone')
     rc210 = blkdiag(zeros(lenS,lenS),driver.oem.alpha_water*s*reducefact,driver.oem.alpha_ozone*s*reducefact);
   end

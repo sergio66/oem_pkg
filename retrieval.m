@@ -37,7 +37,13 @@ if driver.oem.dofit
     driver.oem.finalrates(do_exp) = exp(driver.oem.finalrates(do_exp)) - 1;  %% SCALE FACTOR by which you multiply Qo, Aug 2018 I included the -1
     driver.oem.finalsigs(do_exp)  = exp(driver.oem.finalsigs(do_exp)) - 1;   %% SCALE FACTOR by which you multiply Qo, Aug 2018 I included the -1
   end
-  
+
+  fprintf(1,'IN MATLABCODE/oem_pkg/retrieval.m GND-2/GN-1/GND   WV and T, ST      and the uncertainty, after calling oem_lls');
+  junk = [driver.oem.finalrates(driver.jacobian.water_i(end-3):driver.jacobian.water_i(end)); driver.oem.finalrates(driver.jacobian.temp_i(end-3):driver.jacobian.temp_i(end)); driver.oem.finalrates(6)];
+  fprintf(1,'%8.6f %8.6f %8.6f %8.6f      %8.6f %8.6f %8.6f %8.6f     %8.6f \n',junk);
+  junk = [driver.oem.finalsigs(driver.jacobian.water_i(end-3):driver.jacobian.water_i(end)); driver.oem.finalsigs(driver.jacobian.temp_i(end-3):driver.jacobian.temp_i(end)); driver.oem.finalsigs(6)];
+  fprintf(1,'%8.6f %8.6f %8.6f %8.6f      %8.6f %8.6f %8.6f %8.6f     %8.6f \n',junk);
+   
   % Get rid of OEM un-normalized coefficients
   driver.oem = rmfield(driver.oem,'coeffs');
   driver.oem = rmfield(driver.oem,'coeffssig');
