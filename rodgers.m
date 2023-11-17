@@ -22,7 +22,7 @@ function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,
 %
 % output
 %   errorx             = proagated uncertainties in form of a matrix 200x200
-%   rodgers_rate       = fitted rates afetr 1 iteration, xnp1 = xn + deltax
+%   rodgers_rate       = fitted geophysical rates afetr 1 iteration, xnp1 = xn + deltax
 %   deg of freedom     = dofs
 %   diag(deg freedom)  = cdofs
 %   gain matrix        = gain
@@ -49,6 +49,7 @@ iaSequential = driver.iaSequential;
 if length(iaSequential) > 1 | iaSequential(1) ~= -1
   error('this is ridgers.m .. expect driver.iaSequential == -1')
 end
+
 get_inv_se_rcov_allchans_allparams   %% iaSequential = -1
 
 %---------------------------------------------------------------------------
@@ -62,6 +63,16 @@ chisqr0 = nansum(raBTdeltan'.*raBTdeltan');
 
 %whos rcov rc r k inv_se
 %disp('rodgers.m 1'); keyboard_nowindow
+
+bad = find(isnan(raBTdeltan));
+if length(bad) > 0
+  fprintf(1,'rodgers.m : found %5i NaN in raBTdeltan, setting to 0 \n',length(bad))
+  raBTdeltan(bad) = 0.0;
+end
+iAllBad = -1;
+if length(bad) >= length(raBTdeltan) - 20  | iCommonBad > 0
+  iAllBad = +1;  
+end
 
 raBTdeltaIterate(:,1) = raBTdeltan;
 
@@ -271,6 +282,20 @@ if iKey > 0
 end
 
 do_the_dof_avg_kernel
+
+if iAllBad > 0
+  rodgers_rate = nan(size(rodgers_rate));
+  errorx = nan(size(errorx));
+  dofs   = nan(size(dofs));
+  cdofs  = nan(size(cdofs));
+  gain   = nan(size(gain));
+  ak     = nan(size(ak));
+  ak_water = nan(size(ak_water));
+  ak_temp  = nan(size(ak_temp));
+  ak_ozone = nan(size(ak_ozone));
+  raBTdeltan00 = nan(size(raBTdeltan00));
+end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

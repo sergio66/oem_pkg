@@ -1,5 +1,10 @@
 function [iUseRetrParam,iUseChan] = get_sequential_indices_params(airsL2_chans_set,airsL2_list_set,airsL2_IDs_set,fairs0,chanIDairs,fuse,inds,xbSave,driver,iSequential,iNXYZLay,iFitTraceGas);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% before Nov 2023 use airsL2_IDs_set.X
+%% after  Nov 2023 use airsL2_list_set.X
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 if nargin == 10
   iNXYZLay = 6;
   iFitTraceGas = -1;
@@ -30,9 +35,9 @@ elseif iSequential == 150
   %% this uses fairs0 ~ 2645 chans
   iWVBand = find(fairs0 >= 1300);
 
-  iA = airsL2_IDs_set.tz;
-  iB = airsL2_IDs_set.stemp;
-  iC = union(union(airsL2_IDs_set.cloudphase,airsL2_IDs_set.cirrus),airsL2_IDs_set.emiss_lw);
+  iA = airsL2_list_set.tz;
+  iB = airsL2_list_set.stemp;
+  iC = union(union(airsL2_list_set.cloudphase,airsL2_list_set.cirrus),airsL2_list_set.emiss_lw);
   iB = union(iB,iC);
   %iB = union(iB,iUseChans15);
 
@@ -60,9 +65,9 @@ elseif iSequential == 210 %% = 150 + 60
 
   %%%%%%%%%%%%%%%%%%%%%%%%%
   %% this uses fairs0 ~ 2645 chans
-  iA = airsL2_IDs_set.tz;
-  iB = airsL2_IDs_set.stemp;
-  iC = union(union(airsL2_IDs_set.cloudphase,airsL2_IDs_set.cirrus),airsL2_IDs_set.emiss_lw);
+  iA = airsL2_list_set.tz;
+  iB = airsL2_list_set.stemp;
+  iC = union(union(airsL2_list_set.cloudphase,airsL2_list_set.cirrus),airsL2_list_set.emiss_lw);
   iB = union(iB,iC);
   %[~,~,iUseChan] = intersect(inds,union(iA,iB));
   [~,iUseChan,~] = intersect(inds,union(iA,iB));
@@ -70,7 +75,8 @@ elseif iSequential == 210 %% = 150 + 60
 elseif iSequential == 214  %% = 150 + 60
   %% [STEMP] + [15 um T(z) and WV(z) lowest iNXYZLay layers]
 
-  iUseRetrParam = [6 driver.jacobian.water_i(length(driver.jacobian.water_i)-(iNXYZLay-1):length(driver.jacobian.water_i)) driver.jacobian.temp_i(length(driver.jacobian.temp_i)-(iNXYZLay-1):length(driver.jacobian.temp_i))];
+  iUseRetrParam = [6 driver.jacobian.water_i(length(driver.jacobian.water_i)-(iNXYZLay-1):length(driver.jacobian.water_i)) ...
+                     driver.jacobian.temp_i(length(driver.jacobian.temp_i)-(iNXYZLay-1):length(driver.jacobian.temp_i))];
 
   %%%%%%%%%%%%%%%%%%%%%%%%%
   %% this uses fuse ~ 500 chans
@@ -88,7 +94,7 @@ elseif iSequential == 100
 
   %%%%%%%%%%%%%%%%%%%%%%%%%
   %% this uses fairs0 ~ 2645 chans
-  iA = airsL2_IDs_set.ozone;
+  iA = airsL2_list_set.ozone;
   %[~,~,iUseChan] = intersect(inds,iA);
   [~,iUseChan,~] = intersect(inds,iA);
 
@@ -109,8 +115,8 @@ elseif iSequential == 60
   iUseChan = iUseChanX;
   %%%%%%%%%%%%%%%%%%%%%%%%%
   %% this uses fairs0 ~ 2645 chans
-  iA = airsL2_IDs_set.wvz;
-  iB = airsL2_IDs_set.cloudclearing;
+  iA = airsL2_list_set.wvz;
+  iB = airsL2_list_set.cloudclearing;
 
   %% code uptil June 2023
   %[~,~,iUseChan] = intersect(inds,union(iA,iB));
@@ -121,5 +127,6 @@ elseif iSequential == 60
   %iUseChan = union(iUseChan,iUseChanX);
 end
 
-plot(fuse(iUseChan),'.-'); title(['Chosen Chans at iSequential = ' num2str(iSequential)])
+plot(1:length(fuse),fuse,'b.',iUseChan,fuse(iUseChan),'ro'); grid; 
+title(['Chosen Chans at iSequential = ' num2str(iSequential)])
 pause(0.1)

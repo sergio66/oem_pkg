@@ -76,6 +76,24 @@ else
   i_e0_MatrOrArray = +1;     %% e0 = obs spectral uncertainty, is matrix
 end
 
+iCommonBad = -1;
+bad = find(isnan(e0));
+if length(bad) > 0
+  fprintf(1,'common_rodgers_initializations1.m : found %4i NaN in e0, setting to 0 \n',length(bad));
+  if length(bad) >= length(e0)-20
+    iCommonBad = +1;
+  end
+  e0(bad) = 0.0;
+end
+bad = find(isnan(fme));
+if length(bad) > 0
+  fprintf(1,'common_rodgers_initializations1.m : found %4i NaN in fme, setting to 0 \n',length(bad));
+  if length(bad) >= length(fme)-20
+    iCommonBad = +1;
+  end
+  fme(bad) = 0.0;
+end
+
 if i_e0_MatrOrArray < 0
   %% orig code, send in vector of spectral uncertainty ... so turn it into matrix
   se = e0 + fme;  

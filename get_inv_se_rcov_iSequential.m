@@ -127,7 +127,7 @@ elseif iSequential == 150 | iSequential == 60 | iSequential == 100
   rcov = rcov2;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-elseif iSequential == 214
+elseif iSequential == 214 | iSequential == 210
   reducefact = sqrt(10);
   reducefact = sqrt(10)/2;
   reducefact = sqrt(2);
