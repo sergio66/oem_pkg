@@ -33,8 +33,13 @@ dofs   = trace(dofsx);
 cdofs  = diag(dofsx);                 %% so we can do cumulative d.of.f
 
 % Gain is relative weight of first guess and observations
-r_water  = r(driver.jacobian.water_i,driver.jacobian.water_i); 
-r_temp   = r(driver.jacobian.temp_i,driver.jacobian.temp_i); 
+if driver.topts.dataset < 30
+  r_water  = r(driver.jacobian.water_i,driver.jacobian.water_i); 
+  r_temp   = r(driver.jacobian.temp_i,driver.jacobian.temp_i); 
+elseif driver.topts.dataset == 30
+  r_water  = r(amsu_water_i,amsu_water_i); 
+  r_temp   = r(amsu_temp_i,amsu_temp_i); 
+end
 if invtype == 0
   inv_r       = inv(r);
   inv_r_water = inv(r_water); 
@@ -62,8 +67,13 @@ elseif invtype == 5
 end
 
 % inv operator seems OK for this matrix; if problems go back to pinv
-k_water    = k(:,driver.jacobian.water_i); 
-k_temp     = k(:,driver.jacobian.temp_i); 
+if driver.topts.dataset < 30
+  k_water    = k(:,driver.jacobian.water_i); 
+  k_temp     = k(:,driver.jacobian.temp_i); 
+elseif driver.topts.dataset == 30
+  k_water    = k(:,amsu_water_i); 
+  k_temp     = k(:,amsu_temp_i); 
+end
 if invtype == 0
   gain       = inv_r *k' * inv(k * inv_r * k' + se);
   gain_water = inv_r_water*k_water'*inv(k_water*inv_r_water*k_water'+se); 
@@ -98,7 +108,7 @@ ak = gain * k;
 ak_water = gain_water*k_water; 
 ak_temp  = gain_temp*k_temp; 
 
-if isfield(driver.oem,'alpha_ozone')
+if isfield(driver.oem,'alpha_ozone') & driver.topts.dataset < 30
   r_ozone  = r(driver.jacobian.ozone_i,driver.jacobian.ozone_i); 
   k_ozone    = k(:,driver.jacobian.ozone_i);
   if invtype == 0 

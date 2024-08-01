@@ -39,6 +39,7 @@ function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,
 % DO ALL GEOPHYSICAL VARS in ONE GULP
 %---------------------------------------------------------------------------
 
+%% sets up tracegas_offset, tracegas_offset00
 common_rodgers_initializations1
 
 %---------------------------------------------------------------------------
@@ -51,8 +52,15 @@ if length(iaSequential) > 1 | iaSequential(1) ~= -1
 end
 
 get_inv_se_rcov_allchans_allparams   %% iaSequential = -1
-
 %---------------------------------------------------------------------------
+
+%%% FAST deltax for DEBUG DEBUG DEBUG 
+%{
+   dx1 = r + k' * inv_se * k;
+   dx1 = pinv(dx1);
+   dx2 = k' * inv_se * raBTdeltan - r*(xn-xb);
+   deltax = dx1*dx2;
+%}
 
 iDebug = 0;   %% minimum debug
 %iDebug = +1;  %% tons of debug
@@ -70,11 +78,22 @@ if length(bad) > 0
   raBTdeltan(bad) = 0.0;
 end
 iAllBad = -1;
-if length(bad) >= length(raBTdeltan) - 20  | iCommonBad > 0
-  iAllBad = +1;  
+if length(aux.f) > 100
+  if length(bad) >= length(raBTdeltan) - 20  | iCommonBad > 0
+    iAllBad = +1;  
+  end
+else
+  if length(bad) >= 3 | iCommonBad > 0
+    iAllBad = +1;  
+  end
 end
 
 raBTdeltaIterate(:,1) = raBTdeltan;
+
+if length(aux.f) == 13
+  disp('AMSU jacs, set invtype == 1')
+  invtype = 1;
+end
 
 for ii = 1 : driver.oem.nloop
   % Do the retrieval inversion
@@ -107,6 +126,7 @@ for ii = 1 : driver.oem.nloop
   elseif invtype == 5
     dx1  = inverse_minimum_eigenvalue_matrix_optim(dx1,kmaxrange,sigminrange,'dx1');
   end
+
   if invtype ~= 3
     dx2 = k' * inv_se * raBTdeltan - r*(xn-xb);
   elseif invtype == 3
@@ -117,14 +137,14 @@ for ii = 1 : driver.oem.nloop
   figure(5); imagesc(log10(abs(dx1))); colorbar;                     title('dx1');
   figure(6); plot(dx2);                                              title('dx2');
   figure(7); plot(f(inds),raBTdeltan); plotaxis2;                    title('deltaBT to fit')
-  figure(8); plot(deltax.*driver.qrenorm'); plotaxis2; grid minor;   title('deltax.*qrenorm')
+  figure(8); plot(deltax.*qrenorm');        plotaxis2; grid minor;   title('deltax.*qrenorm')
 
   if iDebug > 0
 
     %addpath /home/sergio/MATLABCODE; keyboard_nowindow
-    figure(1); plot(f,k); grid
-    figure(1); plot(f,k(:,1:5)); grid
-%  figure(1); plot(f,k(:,1)); grid
+    figure(1); plot(f(inds),k); grid
+    figure(1); plot(f(inds),k(:,1:5)); grid
+%  figure(1); plot(f(inds),k(:,1)); grid
     figure(2); pcolor(inv_se); shading flat; colorbar
     figure(2); plot(1:length(raBTdeltan),1./sqrt(diag(inv_se)),'b',1:length(raBTdeltan),-1./sqrt(diag(inv_se)),'b',1:length(raBTdeltan),raBTdeltan,'r'); grid
     figure(2); plot(1:length(raBTdeltan),1./sqrt(diag(inv_se)),'b',1:length(raBTdeltan),-1./sqrt(diag(inv_se)),'b'); grid
@@ -150,17 +170,22 @@ for ii = 1 : driver.oem.nloop
 
   rodgers_rate = real(xn + deltax);
   figure(9); plot(1:length(xn),xn,'ko-',1:length(xn),deltax,'bx-',1:length(xn),real(xn+deltax),'r.-')
-  figure(9); plot(1:length(xn),xn.*driver.qrenorm','ko-',1:length(xn),deltax.*driver.qrenorm','bx-',1:length(xn),real(xn+deltax).*driver.qrenorm','r.-')
+  figure(9); plot(1:length(xn),xn.*qrenorm','ko-',1:length(xn),deltax.*qrenorm','bx-',1:length(xn),real(xn+deltax).*qrenorm','r.-')
     plotaxis2;   xlim([0 max(driver.jacobian.scalar_i)+1])
   hl = legend('orig xn','delta xn','new xn = (orig+delta)','location','best','fontsize',8); 
 
-  ah0 = xn.*driver.qrenorm';
-  dah = deltax.*driver.qrenorm';
-  ah1 = real(xn+deltax).*driver.qrenorm';
-  figure(8); 
+  ah0 = xn.*qrenorm';
+  dah = deltax.*qrenorm';
+  ah1 = real(xn+deltax).*qrenorm';
+  figure(8); clf
+  if driver.topts.dataset < 30
     subplot(131); plot(ah0(driver.jacobian.water_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.water_i),1:length(driver.jacobian.water_i),'r'); title('WV'); set(gca,'ydir','reverse')
-    subplot(132); plot(ah0(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'r');  title('T'); set(gca,'ydir','reverse')
+    subplot(132); plot(ah0(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'b', ah1(driver.jacobian.temp_i),1:length(driver.jacobian.water_i),'r');  title('T');  set(gca,'ydir','reverse')
     subplot(133); plot(ah0(driver.jacobian.ozone_i),1:length(driver.jacobian.water_i),'b',ah1(driver.jacobian.ozone_i),1:length(driver.jacobian.water_i),'r'); title('O3'); set(gca,'ydir','reverse')
+  else
+    subplot(121); plot(ah0(amsu_water_i),1:length(amsu_water_i),'b',ah1(amsu_water_i),1:length(amsu_water_i),'r'); title('WV'); set(gca,'ydir','reverse')
+    subplot(122); plot(ah0(amsu_temp_i),1:length(amsu_water_i),'b', ah1(amsu_temp_i),1:length(amsu_water_i),'r');  title('T');  set(gca,'ydir','reverse')
+  end
 
   xn = rodgers_rate;
   xsave(ii,:) = rodgers_rate;   %%% <<<< save rodgers_rate and chisqr at iteration ii of driver.oem.loop >>>>
@@ -187,23 +212,42 @@ for ii = 1 : driver.oem.nloop
     hold off
 
     [~,numlay] = size(k);
-    numlay = (numlay-6)/3;
-
-    figure(8); clf; plot(f(inds),raBTdeltan,'k.-',f(inds),k(:,1:6),'linewidth',2);
-      hl = legend('rate','CO2','N2O','CH4','CFC11','CFC12','stemp','location','best','fontsize',10);
-    figure(8); clf; plot(f(inds),raBTdeltan,'k.-',f(inds),k(:,1:6),f(inds),sum(k(:,driver.jacobian.water_i),2),f(inds),sum(k(:,driver.jacobian.temp_i),2),f(inds),sum(k(:,driver.jacobian.ozone_i),2),'linewidth',2);
-      hl = legend('rate','CO2','N2O','CH4','CFC11','CFC12','stemp','WV(z)','T(z)','O3(z)','location','best','fontsize',10);
-    figure(8); clf; plot(f(inds),raBTdeltan,'k.-',f(inds),k(:,[1 2 3 6]),f(inds),sum(k(:,driver.jacobian.water_i),2),f(inds),sum(k(:,driver.jacobian.temp_i),2),f(inds),sum(k(:,driver.jacobian.ozone_i),2),'linewidth',2);
-      hl = legend('rate','CO2','N2O','CH4','stemp','WV(z)','T(z)','O3(z)','location','best','fontsize',10);
-
-    figure(9); clf; plot(f(inds),raBTdeltan,'k.-',...
-                         f(inds),sum(k(:,6+0*numlay+(1:numlay)),2),f(inds),sum(k(:,6+1*numlay+(1:numlay)),2),f(inds),sum(k(:,6+2*numlay+(1:numlay)),2),'linewidth',2)
-      hl = legend('rate','colWV','colT','colO3','location','best','fontsize',10);
-
-    figure(10); clf; plot(f(inds),raBTdeltan,'k.-',f(inds),k(:,1:6),...
-                         f(inds),sum(k(:,6+0*numlay+(1:numlay)),2),f(inds),sum(k(:,6+1*numlay+(1:numlay)),2),f(inds),sum(k(:,6+2*numlay+(1:numlay)),2),'linewidth',2)
-      hl = legend('rate','CO2','N2O','CH4','CFC11','CFC12','stemp','colWV','colT','colO3','location','best','fontsize',10);
-    grid;
+    if driver.topts.dataset < 30    
+      numlay = (numlay-6)/3;
+      figure(8); clf; plot(f(inds),raBTdeltan,'g.-',f(inds),k(:,1:6),'linewidth',2);
+        hl = legend('rate','CO2','N2O','CH4','CFC11','CFC12','stemp','location','best','fontsize',10);
+        plotaxis2;
+      figure(8); clf; 
+        plot(f(inds),raBTdeltan,'g.-',f(inds),k(:,1:6),f(inds),sum(k(:,driver.jacobian.water_i),2),f(inds),sum(k(:,driver.jacobian.temp_i),2),f(inds),sum(k(:,driver.jacobian.ozone_i),2),'linewidth',2);
+        hl = legend('rate','CO2','N2O','CH4','CFC11','CFC12','stemp','WV(z)','T(z)','O3(z)','location','best','fontsize',10);
+        plotaxis2;
+      figure(8); clf; 
+        plot(f(inds),raBTdeltan,'g.-',f(inds),k(:,[1 2 3 6]),f(inds),sum(k(:,driver.jacobian.water_i),2),f(inds),sum(k(:,driver.jacobian.temp_i),2),f(inds),sum(k(:,driver.jacobian.ozone_i),2),'linewidth',2);
+        hl = legend('rate','CO2','N2O','CH4','stemp','WV(z)','T(z)','O3(z)','location','best','fontsize',10);
+        plotaxis2;
+      figure(9); clf; plot(f(inds),raBTdeltan,'g.-',...
+                           f(inds),sum(k(:,6+0*numlay+(1:numlay)),2),f(inds),sum(k(:,6+1*numlay+(1:numlay)),2),f(inds),sum(k(:,6+2*numlay+(1:numlay)),2),'linewidth',2)
+        hl = legend('rate','colWV','colT','colO3','location','best','fontsize',10);
+        plotaxis2;
+      figure(10); clf; plot(f(inds),raBTdeltan,'g.-',f(inds),k(:,1:6),...
+                           f(inds),sum(k(:,6+0*numlay+(1:numlay)),2),f(inds),sum(k(:,6+1*numlay+(1:numlay)),2),f(inds),sum(k(:,6+2*numlay+(1:numlay)),2),'linewidth',2)
+        hl = legend('rate','CO2','N2O','CH4','CFC11','CFC12','stemp','colWV','colT','colO3','location','best','fontsize',10);
+        plotaxis2;
+      grid;
+    else
+      numlay = (numlay-1)/2;
+      figure(8); clf; plot(f(inds),10*raBTdeltan,'g.-',f(inds),k(:,1),'linewidth',2);
+        hl = legend('10xrate','stemp','location','best','fontsize',10);
+        plotaxis2;
+      figure(8); clf; 
+        plot(f(inds),10*raBTdeltan,'g.-',f(inds),k(:,1),f(inds),sum(k(:,amsu_water_i),2),f(inds),sum(k(:,amsu_temp_i),2),'linewidth',2);
+        hl = legend('10xrate','stemp','WV(z)','T(z)','location','best','fontsize',10);
+        plotaxis2;
+      figure(9); clf; plot(f(inds),10*raBTdeltan,'g.-',...
+                           f(inds),sum(k(:,1+0*numlay+(1:numlay)),2),f(inds),sum(k(:,1+1*numlay+(1:numlay)),2),'linewidth',2)
+        hl = legend('10xrate','colWV','colT','location','best','fontsize',10);
+        plotaxis2;
+    end
 
     % Compute chisqr, and new raBTdeltan
     raBTdeltan = driver.rateset.rates - thefitr';                             %% till  Jan 2021
@@ -217,7 +261,7 @@ for ii = 1 : driver.oem.nloop
     iYesPlot = 1;    
     if driver.oem.doplots > 0 | iYesPlot > 0
       figure(10); clf
-      figure(10); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'c.-',f(inds),thefitrdelta(inds),'k.-',f(inds),raBTzeltan,'r.-','linewidth',2); plotaxis2;
+      plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'c.-',f(inds),thefitrdelta(inds),'k.-',f(inds),raBTzeltan,'r.-','linewidth',2); plotaxis2;
         hl = legend('input rates','signal''= to fit after subtracting trace gas jacs','fit','signal''-fit','location','best','fontsize',8);
         title(['rodgers.m : ADJ SIGNAL \newline obs - fit at iteration ' num2str(ii)]); pause(0.1)
 
@@ -231,6 +275,8 @@ for ii = 1 : driver.oem.nloop
     xnIN = xn;
   end
 end
+
+%% keyboard_nowindow
 
 raBTdeltaIterate(:,2) = raBTdeltan;
 fuse = f(inds);
@@ -253,6 +299,19 @@ figure(11); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),thefitr(inds),
 bestloop = find(chisqr ==  min(chisqr),1);
 fprintf(1,'bestloop (lowest chisqr) occured at iteration %3i \n',bestloop)
 rodgers_rate = xsave(bestloop,:);
+
+if driver.topts.dataset == 30
+  junkjunk = rodgers_rate;
+  clear junk
+  junk = zeros(size(aux.xb));
+  %% AMSU
+  junkind = 6;                       junk2ind = amsu_scalar_i;  junk(junkind) = junkjunk(junk2ind); %% stemp
+  junkind = driver.jacobian.water_i; junk2ind = amsu_water_i;   junk(junkind) = junkjunk(junk2ind); %% WV
+  junkind = driver.jacobian.temp_i;  junk2ind = amsu_temp_i;    junk(junkind) = junkjunk(junk2ind); %% Tz
+  rodgers_rate = junk;
+  rodgers_rate = reshape(rodgers_rate,1,length(rodgers_rate));
+  clear junk junkind junk2ind junkjunk
+end
 
 if driver.oem.nloop >= 0
   fprintf(1,'printing out successive chisqr values (upto N-1 th iterate) ... %8.6f %8.6f \n',[chisqr0 chisqr(end)])
@@ -282,6 +341,17 @@ if iKey > 0
 end
 
 do_the_dof_avg_kernel
+if driver.topts.dataset == 30
+  junkjunk = errorx;
+  clear junk
+  junk = zeros(length(aux.xb),length(aux.xb));
+  %% AMSU
+  junkind = 6;                       junk2ind = amsu_scalar_i;  junk(junkind,junkind) = junkjunk(junk2ind,junk2ind); %% stemp
+  junkind = driver.jacobian.water_i; junk2ind = amsu_water_i;   junk(junkind,junkind) = junkjunk(junk2ind,junk2ind); %% WV
+  junkind = driver.jacobian.temp_i;  junk2ind = amsu_temp_i;    junk(junkind,junkind) = junkjunk(junk2ind,junk2ind); %% Tz
+  errorx = junk;
+  clear junk junkind junk2ind junkjunk
+end
 
 if iAllBad > 0
   rodgers_rate = nan(size(rodgers_rate));
@@ -296,11 +366,15 @@ if iAllBad > 0
   raBTdeltan00 = nan(size(raBTdeltan00));
 end
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-ff1 = 640; ff2 = 840;
-ff1 = 640; ff2 = 1640;
+if driver.topts.dataset < 30
+  ff1 = 640; ff2 = 840;
+  ff1 = 640; ff2 = 1640;
+else
+  ff1 = 50; ff2 = 60;
+end
+
 %figure(10); axis([ff1 ff2 -0.2 +0.2]); grid minor; 
 %figure(1);  axis([ff1 ff2 -0.2 +0.2]);  grid minor;
 %figure(7);  axis([ff1 ff2 -0.2 +0.2]);  grid minor; 

@@ -18,14 +18,13 @@ if driver.lls.dofit
    driver.lls.finalrates = driver.lls.coeffs.*renormalize;
    sigs  = (driver.lls.coeffssig(:,2)-driver.lls.coeffssig(:,1))/2;
    driver.lls.finalsigs = sigs.*renormalize;
-% Get rid of LLS un-normalized coefficients
+   % Get rid of LLS un-normalized coefficients
    driver.lls = rmfield(driver.lls,'coeffs');
    driver.lls = rmfield(driver.lls,'coeffssig');
 end
 
 if driver.oem.dofit
   % Renormalize OEM coefficients
-
   driver.oem.finalrates = driver.oem.coeffs'.*renormalize;
   driver.oem.finalsigs  = driver.oem.coeffssig'.*renormalize;
 
@@ -38,12 +37,15 @@ if driver.oem.dofit
     driver.oem.finalsigs(do_exp)  = exp(driver.oem.finalsigs(do_exp)) - 1;   %% SCALE FACTOR by which you multiply Qo, Aug 2018 I included the -1
   end
 
+  disp(' ')
   fprintf(1,'IN MATLABCODE/oem_pkg/retrieval.m GND-2/GN-1/GND   WV and T, ST      and the uncertainty, after calling oem_lls');
-  junk = [driver.oem.finalrates(driver.jacobian.water_i(end-3):driver.jacobian.water_i(end)); driver.oem.finalrates(driver.jacobian.temp_i(end-3):driver.jacobian.temp_i(end)); driver.oem.finalrates(6)];
-  fprintf(1,'%8.6f %8.6f %8.6f %8.6f      %8.6f %8.6f %8.6f %8.6f     %8.6f \n',junk);
-  junk = [driver.oem.finalsigs(driver.jacobian.water_i(end-3):driver.jacobian.water_i(end)); driver.oem.finalsigs(driver.jacobian.temp_i(end-3):driver.jacobian.temp_i(end)); driver.oem.finalsigs(6)];
-  fprintf(1,'%8.6f %8.6f %8.6f %8.6f      %8.6f %8.6f %8.6f %8.6f     %8.6f \n',junk);
-   
+  junk1 = [driver.oem.finalrates(driver.jacobian.water_i(end-3):driver.jacobian.water_i(end)); driver.oem.finalrates(driver.jacobian.temp_i(end-3):driver.jacobian.temp_i(end)); driver.oem.finalrates(6)];
+  junk2 = [driver.oem.finalsigs(driver.jacobian.water_i(end-3):driver.jacobian.water_i(end));  driver.oem.finalsigs(driver.jacobian.temp_i(end-3):driver.jacobian.temp_i(end));  driver.oem.finalsigs(6)];
+  %fprintf(1,'[%8.5f %8.5f %8.5f %8.5f]              [%8.5f %8.5f %8.5f %8.5f]              [%8.5f] \n',junk1);
+  %fprintf(1,'[%8.5f %8.5f %8.5f %8.5f]              [%8.5f %8.5f %8.5f %8.5f]              [%8.5f] \n',junk2);
+  junk = [junk1 junk2];
+  fprintf(1,'%8.5f %8.5f \n',junk');
+
   % Get rid of OEM un-normalized coefficients
   driver.oem = rmfield(driver.oem,'coeffs');
   driver.oem = rmfield(driver.oem,'coeffssig');

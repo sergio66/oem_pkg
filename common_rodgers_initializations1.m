@@ -1,7 +1,24 @@
  %% these are common to iaSequential = -1 (one gulp) or eg [150 60 100 -1] *sequential)
 
+qrenorm = driver.qrenorm;
+
 % Jacobians
 m_ts_jac = aux.m_ts_jac;
+if driver.topts.dataset == 30
+  %% AMSU
+  junkind = 6;                       junk2ind = 1;                                   junk(:,junk2ind) = aux.m_ts_jac(:,junkind); amsu_scalar_i = junk2ind; %% stemp 
+  junkind = driver.jacobian.water_i; junk2ind = junk2ind(end) + (1:length(junkind)); junk(:,junk2ind) = aux.m_ts_jac(:,junkind); amsu_water_i  = junk2ind; %% WV
+  junkind = driver.jacobian.temp_i;  junk2ind = junk2ind(end) + (1:length(junkind)); junk(:,junk2ind) = aux.m_ts_jac(:,junkind); amsu_temp_i   = junk2ind; %% Tz
+  m_ts_jac = junk;
+  clear junk junkind junk2ind
+
+  junk = ones(1,length(m_ts_jac));
+  junkind = 6;                       junk(amsu_scalar_i) = qrenorm(junkind);
+  junkind = driver.jacobian.water_i; junk(amsu_water_i)  = qrenorm(junkind);
+  junkind = driver.jacobian.temp_i;  junk(amsu_temp_i)   = qrenorm(junkind);
+  qrenorm = junk;
+  clear junk
+end
 
 % Index of frequencies used
 inds     = driver.jacobian.chanset;
@@ -50,6 +67,15 @@ end
 
 % Apriori state; make sure it has been correctly normalized before being used here!
 xb       = aux.xb;
+if driver.topts.dataset == 30
+  %% AMSU
+  junkind = 6;                       junk2ind = amsu_scalar_i;  junk(junk2ind) = xb(6); %% stemp
+  junkind = driver.jacobian.water_i; junk2ind = amsu_water_i;   junk(junk2ind) = xb(junkind); %% WV
+  junkind = driver.jacobian.temp_i;  junk2ind = amsu_temp_i;    junk(junk2ind) = xb(junkind); %% Tz
+  xb = junk;
+  xb = reshape(xb,length(xb),1);
+  clear junk junkind junk2ind
+end
 
 % Covariance (uncertainties/correlations) of measurements
 lenr = length(inds);
@@ -135,12 +161,15 @@ k = m_ts_jac(inds,:);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 disp(' >>> these are the indices where xb is not 0 ie you have initialized them <<<<')
-chch = find(abs(xb) > eps); [chch xb(chch) xb(chch).*driver.qrenorm(chch)']
-disp(' >>> these are the indices where xb is not 0 ie you have initialized them <<<<')
+chch = find(abs(xb) > eps); 
+if length(chch) > 0
+  disp(' >>> these are the indices where xb is not 0 ie you have initialized them <<<<')
+  printarray([chch xb(chch) xb(chch).*qrenorm(chch)'])
+end
 
 iAddXB = -1; %% new, does this really makes more sense see eg anomaly_0dayavg_resultsXloop3try2?????
 iAddXB = +1; %% orig, wierd but I think it is ok as you need raBTdelta0 = obs - tracegas_offset = obs-f(x0) = obs - f(xb)
-if iAddXB > 0
+if iAddXB > 0 & driver.topts.dataset < 30
   nyuk = find(abs(xn) > eps);
   %[nyuk xn(nyuk)]
   % Form y - F(xa), this is orig code but a little wierd!!!!!!
@@ -149,6 +178,12 @@ if iAddXB > 0
      tracegas_offset = tracegas_offset + (xn(iy)*m_ts_jac(:,iy));
      if iy == length(driver.jacobian.scalar_i)
        tracegas_offset6 = tracegas_offset;
+     end
+     if iy == length(driver.jacobian.scalar_i) + length(driver.jacobian.water_i)
+       tracegas_offsetWV = tracegas_offset - tracegas_offset6;
+     end
+     if iy == length(driver.jacobian.scalar_i) + length(driver.jacobian.water_i) + length(driver.jacobian.temp_i)
+       tracegas_offsetT = tracegas_offset - tracegas_offset6 - tracegas_offsetWV;
      end
   end
   iJUNK = [driver.jacobian.scalar_i  driver.jacobian.water_i([1 end]) driver.jacobian.temp_i([1 end]) driver.jacobian.ozone_i([1 end])];
@@ -167,11 +202,20 @@ if iAddXB > 0
   raBTdeltan00 = driver.rateset.rates - tracegas_offset00;    %%% << this is what we are fitting, all 2645 chans >>
   raBTdeltan   = raBTdeltan00(inds);                              %%% << this is what we are fitting, strow selected ~500 chans >>
   raBTdeltan0  = raBTdeltan;
-else
+
+elseif iAddXB < 0 & driver.topts.dataset < 30
   tracegas_offset = zeros(size(driver.rateset.rates));
   tracegas_offset00 = tracegas_offset;
   tracegas_offset6 = tracegas_offset;
   raBTdeltan00 = driver.rateset.rates - tracegas_offset00;    %%% << this is what we are fitting, all chans >>
+  raBTdeltan   = raBTdeltan00(inds);                 %%% << this is what we are fitting, selected chans >>
+  raBTdeltan0  = raBTdeltan;
+
+elseif driver.topts.dataset == 30
+  tracegas_offset = zeros(size(driver.rateset.rates));
+  tracegas_offset00 = tracegas_offset;
+  tracegas_offset6 = tracegas_offset;
+  raBTdeltan00 = driver.rateset.rates;               %%% << this is what we are fitting, all chans >>
   raBTdeltan   = raBTdeltan00(inds);                 %%% << this is what we are fitting, selected chans >>
   raBTdeltan0  = raBTdeltan;
 end
@@ -188,8 +232,10 @@ elseif length(driver.rateset.rates) == 2378
   f = instr_chans;
 elseif length(driver.rateset.rates) == 1305
   f = instr_chans('cris1305');
+elseif length(driver.rateset.rates) == 13
+  f = aux.f;
 else
-  error('oooorrr is this AIRS 2378 or 2465 or Cris 1305?')
+  error('oooorrr is this AIRS 2378 or 2465 or Cris 1305 or AMSU 13?')
 end
 
 figure(12); plot(f,tracegas_offset,'b.-',f,tracegas_offset6,'r',f,m_ts_jac(:,1:3)); hl = legend('tracegas+T/WV/O3 offset','tracegas ONLY offset','CO2 jac','N2O jac','CH4 jac','location','best','fontsize',10);
@@ -198,25 +244,31 @@ figure(1); plot(f(inds),driver.rateset.rates(inds),'b.-',f(inds),tracegas_offset
   plotaxis2; title('in oem\_pkg/rodgers.m : nyuk'); 
   hl = legend('input rates','trace gas jacs offset','signal''= to fit b-g','location','best');
 
-[mmm,nnn] = size(m_ts_jac);
-nlays = length(driver.jacobian.water_i);
-nTG   = length(driver.jacobian.scalar_i);
-%if nnn == 66
-  %%% this is 20 layers = 6 + 20 WV + 20 T + 20 Oz
-  wahCO2_ST = m_ts_jac(inds,[1 nTG]);
-  wahWV = m_ts_jac(inds,(1:nlays)+nTG+0*nlays);
-  wahT  = m_ts_jac(inds,(1:nlays)+nTG+1*nlays);
-  wahO3 = m_ts_jac(inds,(1:nlays)+nTG+2*nlays);
-  figure(1); plot(f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'kx-',f(inds),sum(wahWV'),f(inds),sum(wahT'),f(inds),sum(wahO3'),f(inds),wahCO2_ST(:,1),f(inds),wahCO2_ST(:,2),'linewidth',2); 
-    plotaxis2; title('initializations :  oem\_pkg/rodgers.m : nyuk'); 
-    hl = legend('signal''= to fit b-g','WVjac','Tjac','O3jac','CO2jac','STjac','location','best','fontsize',10);
-  figure(1); plot(f(inds),sum(wahWV'),f(inds),sum(wahT'),f(inds),sum(wahO3'),f(inds),wahCO2_ST(:,1),f(inds),wahCO2_ST(:,2),'linewidth',2); 
-    plotaxis2; title('initializations : oem\_pkg/rodgers.m : nyuk'); 
-    hl = legend('WVjac','Tjac','O3jac','CO2jac','STjac','location','best','fontsize',10);
-%end
+if driver.topts.dataset < 30
+  [mmm,nnn] = size(m_ts_jac);
+  nlays = length(driver.jacobian.water_i);
+  nTG   = length(driver.jacobian.scalar_i);
+  %if nnn == 66
+    %%% this is 20 layers = 6 + 20 WV + 20 T + 20 Oz
+    wahCO2_ST = m_ts_jac(inds,[1 nTG]);
+    wahWV = m_ts_jac(inds,(1:nlays)+nTG+0*nlays);
+    wahT  = m_ts_jac(inds,(1:nlays)+nTG+1*nlays);
+    wahO3 = m_ts_jac(inds,(1:nlays)+nTG+2*nlays);
+    figure(1); plot(f(inds),driver.rateset.rates(inds) - tracegas_offset00(inds),'kx-',...
+                    f(inds),sum(wahWV'),f(inds),sum(wahT'),f(inds),sum(wahO3'),f(inds),wahCO2_ST(:,1),f(inds),wahCO2_ST(:,2),'linewidth',2); 
+      plotaxis2; title('initializations :  oem\_pkg/rodgers.m : nyuk'); 
+      hl = legend('signal''= to fit b-g','WVjac','Tjac','O3jac','CO2jac','STjac','location','best','fontsize',10);
+    figure(1); plot(f(inds),sum(wahWV'),f(inds),sum(wahT'),f(inds),sum(wahO3'),f(inds),wahCO2_ST(:,1),f(inds),wahCO2_ST(:,2),'linewidth',2); 
+      plotaxis2; title('initializations : oem\_pkg/rodgers.m : nyuk'); 
+      hl = legend('WVjac','Tjac','O3jac','CO2jac','STjac','location','best','fontsize',10);
+    figure(1); plot(f(inds),sum(wahWV')/10,f(inds),sum(wahT'),f(inds),sum(wahO3')/10,f(inds),wahCO2_ST(:,1)/10,f(inds),wahCO2_ST(:,2),'linewidth',2); 
+      plotaxis2; title('initializations : oem\_pkg/rodgers.m : nyuk'); 
+      hl = legend('WVjac/10','Tjac','O3jac/10','CO2jac/10','STjac','location','best','fontsize',10);
+  %end
+end
   
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if iAddXB > 0
+if iAddXB > 0 & driver.topts.dataset < 30
   %indsy791 = find(f >= 790,1); indsy791 = sort([inds; (indsy791-25:indsy791+25)']);
 
   %driver.oem.doplots = 1  

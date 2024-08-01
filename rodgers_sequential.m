@@ -39,6 +39,7 @@ function [rodgers_rate,errorx,dofs,cdofs,gain,ak,r,se,inv_se,se_errors,ak_water,
 % DO sequential retrieval of GEOPHYSICAL VARS
 %---------------------------------------------------------------------------
 
+%% sets up tracegas_offset, tracegas_offset00
 common_rodgers_initializations1
 
 %---------------------------------------------------------------------------
@@ -101,8 +102,8 @@ xnSave         = xn;
 fSave          = f;
 xsave          = zeros(length(iaSequential),driver.oem.nloop,length(xb));
 raBTdeltanSave = raBTdeltan; %% from common_rodgers_initialization, this is strow selected ~500 chans
-                     %%    raBTdeltan00 = driver.rateset.rates - tracegas_offset00;    %%% << this is what we are fitting, all 2645 chans >>
-                     %%    raBTdeltan   = raBTdeltan00(inds);                          %%% << this is what we are fitting, strow selected ~500 chans >>
+                             %%    raBTdeltan00 = driver.rateset.rates - tracegas_offset00;    %%% << this is what we are fitting, all 2645 chans >>
+                             %%    raBTdeltan   = raBTdeltan00(inds);                          %%% << this is what we are fitting, strow selected ~500 chans >>
 
 raBTdeltaIterate(:,1) = raBTdeltanSave;
 
@@ -116,6 +117,9 @@ iDebug = -1;
 
 iKeyBoard = +1;
 iKeyBoard = -1;
+
+plot(f(inds),driver.rateset.rates(inds),'k.-',f(inds),tracegas_offset6(inds),'g',f(inds),tracegas_offsetWV(inds),'b',f(inds),tracegas_offsetT(inds),'r')
+  title('Removing effects using xb'); hl = legend('SIGNAL','trace gases','WV','T','location','best','fontsize',8);  
 
 fprintf(1,'iSequential = %3i : GND-2/GN-1/GND   WV and T, ST entering OEM \n',-9999);
   junk = [xbSave(driver.jacobian.water_i(end-3):driver.jacobian.water_i(end)); xbSave(driver.jacobian.temp_i(end-3):driver.jacobian.temp_i(end)); xbSave(6)];

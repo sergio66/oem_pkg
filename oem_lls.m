@@ -2,16 +2,15 @@ function driver = oem_lls(driver,aux);
 
 %LLS-------------------------------------------------------------------------
 if driver.lls.dofit
-
-   chanset = driver.jacobian.chanset;
-   [coeffs,coeffssig] = regress(driver.rateset.rates(chanset),aux.m_ts_jac(chanset,:));
-   thefit = zeros(length(driver.rateset.rates),1);
-   for ix = 1 : length(coeffs)
-      thefit = thefit + coeffs(ix)*aux.m_ts_jac(:,ix);
-   end
-   driver.lls.coeffs    = coeffs;
-   driver.lls.coeffssig = coeffssig;
-   driver.lls.fit       = thefit;
+  chanset = driver.jacobian.chanset;
+  [coeffs,coeffssig] = regress(driver.rateset.rates(chanset),aux.m_ts_jac(chanset,:));
+  thefit = zeros(length(driver.rateset.rates),1);
+  for ix = 1 : length(coeffs)
+    thefit = thefit + coeffs(ix)*aux.m_ts_jac(:,ix);
+  end
+  driver.lls.coeffs    = coeffs;
+  driver.lls.coeffssig = coeffssig;
+  driver.lls.fit       = thefit;
 end
 
 %OEM--------------------------------------------------------------------------
